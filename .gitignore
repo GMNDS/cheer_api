@@ -1,0 +1,11 @@
+/vendor/
+/.env
+
+/storage/logs/*.log
+/storage/cache/*
+
+.phpunit.result.cache
+coverage/
+
+.DS_Store
+Thumbs.db
