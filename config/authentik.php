@@ -1,0 +1,37 @@
+<?php
+
+use Cheer\Core\Env;
+
+$baseUrl = rtrim((string) Env::get('AUTHENTIK_BASE_URL', ''), '/');
+$applicationSlug = trim((string) Env::get('AUTHENTIK_APPLICATION_SLUG', 'cheer-api'), '/');
+$issuer = (string) Env::get(
+    'AUTHENTIK_ISSUER',
+    $baseUrl !== '' ? "{$baseUrl}/application/o/{$applicationSlug}/" : ''
+);
+
+return [
+    'base_url' => $baseUrl,
+    'api_base_url' => Env::get('AUTHENTIK_API_BASE_URL', $baseUrl !== '' ? "{$baseUrl}/api/v3" : ''),
+    'api_token' => Env::get('AUTHENTIK_API_TOKEN', ''),
+    'verify_ssl' => Env::get('AUTHENTIK_VERIFY_SSL', true),
+    'ca_bundle' => Env::get('AUTHENTIK_CA_BUNDLE', ''),
+    'application_slug' => $applicationSlug,
+    'client_id' => Env::get('AUTHENTIK_CLIENT_ID', ''),
+    'client_secret' => Env::get('AUTHENTIK_CLIENT_SECRET', ''),
+    'redirect_uri' => Env::get('AUTHENTIK_REDIRECT_URI', 'http://localhost:8000/api/auth/callback'),
+    'post_login_redirect_uri' => Env::get('AUTHENTIK_POST_LOGIN_REDIRECT_URI', 'http://localhost:5173'),
+    'post_logout_redirect_uri' => Env::get('AUTHENTIK_POST_LOGOUT_REDIRECT_URI', 'http://localhost:5173'),
+    'issuer' => $issuer,
+    'jwks_url' => Env::get('AUTHENTIK_JWKS_URL', $issuer !== '' ? "{$issuer}jwks/" : ''),
+    'authorization_url' => $baseUrl !== '' ? "{$baseUrl}/application/o/authorize/" : '',
+    'token_url' => $baseUrl !== '' ? "{$baseUrl}/application/o/token/" : '',
+    'userinfo_url' => $baseUrl !== '' ? "{$baseUrl}/application/o/userinfo/" : '',
+    'scopes' => explode(' ', (string) Env::get('AUTHENTIK_SCOPES', 'openid profile email')),
+    'required_scopes' => array_filter(explode(' ', (string) Env::get('AUTHENTIK_REQUIRED_SCOPES', ''))),
+    'user_path' => Env::get('AUTHENTIK_USER_PATH', 'users'),
+    'local_user_identifier' => Env::get('AUTHENTIK_LOCAL_USER_IDENTIFIER', 'uid'),
+    'voluntario_group_name' => Env::get('AUTHENTIK_VOLUNTARIO_GROUP_NAME', 'voluntario'),
+    'instituicao_group_name' => Env::get('AUTHENTIK_INSTITUICAO_GROUP_NAME', 'instituicao'),
+    'voluntario_group_uuid' => Env::get('AUTHENTIK_VOLUNTARIO_GROUP_UUID', ''),
+    'instituicao_group_uuid' => Env::get('AUTHENTIK_INSTITUICAO_GROUP_UUID', ''),
+];
