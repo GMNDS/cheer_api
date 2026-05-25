@@ -16,12 +16,42 @@ jobs:
       - name: Baixar codigo
         uses: actions/checkout@v6
 
-      - name: Preparar PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.5'
-          coverage: none
-          tools: composer:v2
+      - name: Instalar PHP e dependencias do sistema
+        shell: bash
+        run: |
+          set -e
+          if command -v apt-get >/dev/null; then
+            if [ "$(id -u)" -ne 0 ]; then
+              if command -v sudo >/dev/null; then
+                SUDO="sudo"
+              else
+                echo "Precisa de root ou sudo para instalar pacotes." >&2
+                exit 1
+              fi
+            else
+              SUDO=""
+            fi
+            $SUDO apt-get update
+            $SUDO apt-get install -y lsb-release ca-certificates apt-transport-https curl gnupg2 git unzip
+            $SUDO mkdir -p /usr/share/keyrings
+            curl -fsSL https://packages.sury.org/php/apt.gpg | $SUDO gpg --dearmor -o /usr/share/keyrings/sury-php.gpg
+            echo "deb [signed-by=/usr/share/keyrings/sury-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" | $SUDO tee /etc/apt/sources.list.d/sury-php.list >/dev/null
+            $SUDO apt-get update
+            $SUDO apt-get install -y php8.4 php8.4-cli php8.4-xml php8.4-mbstring php8.4-curl php8.4-zip
+            if [ -x /usr/bin/php8.4 ]; then
+              $SUDO update-alternatives --set php /usr/bin/php8.4 || true
+            fi
+          else
+            echo "apt-get não encontrado no runner. Precisa ajustar a imagem do runner." >&2
+            exit 1
+          fi
+          php -v
+
+      - name: Instalar Composer
+        run: |
+          curl -sS https://getcomposer.org/installer -o composer-setup.php
+          php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+          rm composer-setup.php
 
       - name: Instalar dependencias
         run: composer install --prefer-dist --no-interaction --no-progress
