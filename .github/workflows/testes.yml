@@ -10,7 +10,7 @@ permissions:
 jobs:
   phpunit:
     name: Testes PHP
-    runs-on: ubuntu-latest
+    runs-on: docker
 
     steps:
       - name: Baixar codigo
