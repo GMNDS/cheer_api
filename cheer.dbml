@@ -1,0 +1,125 @@
+Enum "competencia_enum" {
+    "Habilidade"
+    "Afinidade"
+    "Fraqueza"
+}
+
+Enum "tipo_avaliacao_enum" {
+    "VOLUNTARIO_AVALIA_INSTITUICAO"
+    "INSTITUICAO_AVALIA_VOLUNTARIO"
+}
+
+Table "instituicao" {
+  "id" int [pk, not null, increment]
+  "authentik_user" varchar(100) [unique]
+  "nome" varchar(255) [not null]
+  "email" varchar(255) [unique, not null]
+  "telefone" varchar(20)
+  "id_endereco" int [not null, ref: > "enderecos"."id"]
+  "cnpj" "char(14)" [unique, not null]
+  "tipo" varchar(100)
+  "ano_fundacao" int
+  "categoria" varchar(100)
+  "internacional" boolean
+}
+
+Table "avaliacao" {
+  "id" int [pk, not null, increment]
+  "id_instituicao" int [not null, ref: > "instituicao"."id"]
+  "id_voluntario" int [not null, ref: > "voluntario"."id"]
+  "id_evento" int [ref: > "evento"."id"]
+  "tipo_avaliacao" tipo_avaliacao_enum [not null]
+  "data" date
+  "nota" int
+  "justificativa" text
+}
+
+Table "voluntario_competencia" {
+  "id_voluntario" int [not null, ref: > "voluntario"."id"]
+  "id_competencia" int [not null, ref: > "competencia"."id"]
+
+  Indexes {
+    (id_voluntario, id_competencia) [pk]
+  }
+}
+
+Table "competencia" {
+  "id" int [pk, not null, increment]
+  "tipo" competencia_enum [not null]
+  "nome" varchar(255) [not null]
+  "descricao" text
+}
+
+Table "voluntario" {
+  "id" int [pk, not null, increment]
+  "authentik_user" varchar(100) [unique]
+  "nome" varchar(255) [not null]
+  "email" varchar(255) [unique, not null]
+  "telefone" varchar(20)
+  "id_endereco" int [not null, ref: > "enderecos"."id"]
+  "cpf" "char(11)" [unique]
+  "rg" varchar(20)
+  "genero" varchar(50)
+  "data_nascimento" date
+  "otp_code" varchar(500)
+}
+
+Table "voluntario_evento" {
+  "id_voluntario" int [not null, ref: > "voluntario"."id"]
+  "id_evento" int [not null, ref: > "evento"."id"]
+  "status" varchar(100)
+  "data_inscricao" timestamp
+
+  Indexes {
+    (id_voluntario, id_evento) [pk]
+  }
+}
+
+Table "contrato_instituicao" {
+  "id_contrato" int [pk, not null, increment]
+  "id_voluntario" int [not null, ref: > "voluntario"."id"]
+  "id_instituicao" int [not null, ref: > "instituicao"."id"]
+  "data_contrato" date
+  "atividade_exercida" varchar(255)
+  "periodo_atividade" varchar(255)
+  "status_contrato" varchar(100)
+}
+
+Table "evento" {
+  "id" int [pk, not null, increment]
+  "id_instituicao" int [not null, ref: > "instituicao"."id"]
+  "id_endereco" int [not null, ref: > "enderecos"."id"]
+  "titulo" varchar(255) [not null]
+  "constancia" varchar(100)
+  "data_hora_inicio" timestamp [not null]
+  "data_hora_termino" timestamp
+  "tipo_evento" varchar(100) [not null]
+  "num_max_voluntarios" int
+  "descricao" text
+  "created_at" timestamp
+  "updated_at" timestamp
+}
+
+Table "enderecos" {
+  "id" int [pk, not null, increment]
+  "rua" varchar(255) [not null]
+  "bairro" varchar(255) [not null]
+  "cidade" varchar(255) [not null]
+  "uf" "char(2)" [not null]
+  "codigo_postal" "char(8)" [not null]
+  "lat" decimal(10,8)
+  "lng" decimal(11,8)
+}
+
+Table "logs_eventos" {
+  "id" int [pk, not null, increment]
+  "tipo_evento" varchar(100) [not null]
+  "descricao" text [not null]
+  "nivel" varchar(50) [not null]
+  "origem" varchar(100)
+  "id_usuario" int
+  "tipo_usuario" varchar(50)
+  "ip_origem" varchar(45)
+  "user_agent" varchar(255)
+  "data_hora" timestamp [not null]
+}
