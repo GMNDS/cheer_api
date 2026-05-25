@@ -1,6 +1,7 @@
 <?php
 
 use Cheer\Controllers\AuthController;
+use Cheer\Controllers\DocumentationController;
 use Cheer\Controllers\EventoController;
 use Cheer\Controllers\HealthController;
 use Cheer\Controllers\InscricaoController;
@@ -14,8 +15,13 @@ $auth = new AuthController();
 $eventos = new EventoController();
 $inscricoes = new InscricaoController();
 $registration = new RegistrationController();
+$docs = new DocumentationController();
 
 $router->get('/', [$health, 'index']);
+$router->get('/docs', [$docs, 'scalar']);
+$router->get('/api/docs', [$docs, 'scalar']);
+$router->get('/openapi.json', [$docs, 'openapi']);
+$router->get('/api/openapi.json', [$docs, 'openapi']);
 $router->get('/health', [$health, 'index']);
 $router->get('/health/database', [$health, 'database']);
 $router->get('/auth/config', [$auth, 'config']);

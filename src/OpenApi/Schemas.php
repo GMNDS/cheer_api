@@ -1,0 +1,266 @@
+<?php
+
+namespace Cheer\OpenApi;
+
+use OpenApi\Attributes as OA;
+
+#[OA\Schema(
+    schema: 'ErrorResponse',
+    required: ['status', 'message'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'error'),
+        new OA\Property(property: 'message', type: 'string'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'ValidationError',
+    allOf: [
+        new OA\Schema(ref: '#/components/schemas/ErrorResponse'),
+        new OA\Schema(
+            properties: [
+                new OA\Property(
+                    property: 'fields',
+                    type: 'array',
+                    items: new OA\Items(type: 'string')
+                ),
+            ],
+            type: 'object'
+        ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'EnderecoInput',
+    required: ['rua', 'bairro', 'cidade', 'uf', 'codigo_postal'],
+    properties: [
+        new OA\Property(property: 'rua', type: 'string', example: 'Rua Teste'),
+        new OA\Property(property: 'bairro', type: 'string', example: 'Centro'),
+        new OA\Property(property: 'cidade', type: 'string', example: 'Sao Paulo'),
+        new OA\Property(property: 'uf', type: 'string', maxLength: 2, minLength: 2, example: 'SP'),
+        new OA\Property(property: 'codigo_postal', type: 'string', example: '01001000'),
+        new OA\Property(property: 'lat', type: 'number', format: 'double', nullable: true),
+        new OA\Property(property: 'lng', type: 'number', format: 'double', nullable: true),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'RegisterVoluntarioRequest',
+    required: ['nome', 'email', 'password', 'cpf', 'endereco'],
+    properties: [
+        new OA\Property(property: 'nome', type: 'string', example: 'Ana Souza'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'ana@email.com'),
+        new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8, writeOnly: true),
+        new OA\Property(property: 'telefone', type: 'string', nullable: true, example: '11999999999'),
+        new OA\Property(property: 'cpf', type: 'string', example: '12345678901'),
+        new OA\Property(property: 'rg', type: 'string', nullable: true),
+        new OA\Property(property: 'genero', type: 'string', nullable: true),
+        new OA\Property(property: 'data_nascimento', type: 'string', format: 'date', nullable: true),
+        new OA\Property(property: 'endereco', ref: '#/components/schemas/EnderecoInput'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'RegisterInstituicaoRequest',
+    required: ['nome', 'email', 'password', 'cnpj', 'endereco'],
+    properties: [
+        new OA\Property(property: 'nome', type: 'string', example: 'Instituto Esperanca'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'contato@instituto.org'),
+        new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8, writeOnly: true),
+        new OA\Property(property: 'telefone', type: 'string', nullable: true),
+        new OA\Property(property: 'cnpj', type: 'string', example: '12345678000199'),
+        new OA\Property(property: 'tipo', type: 'string', nullable: true, example: 'ONG'),
+        new OA\Property(property: 'ano_fundacao', type: 'integer', nullable: true),
+        new OA\Property(property: 'categoria', type: 'string', nullable: true, example: 'Educacao'),
+        new OA\Property(property: 'internacional', type: 'boolean', nullable: true),
+        new OA\Property(property: 'endereco', ref: '#/components/schemas/EnderecoInput'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'RegisterResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(
+            property: 'data',
+            required: ['id', 'tipo', 'authentik_user'],
+            properties: [
+                new OA\Property(property: 'id', type: 'integer', example: 1),
+                new OA\Property(property: 'tipo', type: 'string', enum: ['voluntario', 'instituicao']),
+                new OA\Property(property: 'authentik_user', type: 'string'),
+            ],
+            type: 'object'
+        ),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'AuthConfigResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(
+            property: 'data',
+            required: ['mode', 'authenticated', 'login_url', 'logout_url'],
+            properties: [
+                new OA\Property(property: 'mode', type: 'string', example: 'session-bff'),
+                new OA\Property(property: 'authenticated', type: 'boolean', example: false),
+                new OA\Property(property: 'login_url', type: 'string', example: 'http://localhost:8000/api/auth/login'),
+                new OA\Property(property: 'logout_url', type: 'string', example: 'http://localhost:8000/api/auth/logout'),
+            ],
+            type: 'object'
+        ),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'ProfileResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(
+            property: 'data',
+            oneOf: [
+                new OA\Schema(ref: '#/components/schemas/VoluntarioProfile'),
+                new OA\Schema(ref: '#/components/schemas/InstituicaoProfile'),
+            ]
+        ),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'VoluntarioProfile',
+    required: ['tipo', 'id', 'nome', 'email', 'cidade', 'uf'],
+    properties: [
+        new OA\Property(property: 'tipo', type: 'string', enum: ['voluntario']),
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'nome', type: 'string'),
+        new OA\Property(property: 'email', type: 'string', format: 'email'),
+        new OA\Property(property: 'telefone', type: 'string', nullable: true),
+        new OA\Property(property: 'cidade', type: 'string'),
+        new OA\Property(property: 'uf', type: 'string'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'InstituicaoProfile',
+    required: ['tipo', 'id', 'nome', 'email', 'cidade', 'uf'],
+    properties: [
+        new OA\Property(property: 'tipo', type: 'string', enum: ['instituicao']),
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'nome', type: 'string'),
+        new OA\Property(property: 'email', type: 'string', format: 'email'),
+        new OA\Property(property: 'telefone', type: 'string', nullable: true),
+        new OA\Property(property: 'categoria', type: 'string', nullable: true),
+        new OA\Property(property: 'cidade', type: 'string'),
+        new OA\Property(property: 'uf', type: 'string'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'CreateEventoRequest',
+    required: ['titulo', 'tipo_evento', 'data_hora_inicio', 'endereco'],
+    properties: [
+        new OA\Property(property: 'titulo', type: 'string', example: 'Acao solidaria no centro'),
+        new OA\Property(property: 'constancia', type: 'string', nullable: true),
+        new OA\Property(property: 'data_hora_inicio', type: 'string', format: 'date-time', example: '2026-06-01T09:00:00-03:00'),
+        new OA\Property(property: 'data_hora_termino', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'tipo_evento', type: 'string', example: 'voluntariado'),
+        new OA\Property(property: 'num_max_voluntarios', type: 'integer', nullable: true, example: 20),
+        new OA\Property(property: 'descricao', type: 'string', nullable: true),
+        new OA\Property(property: 'endereco', ref: '#/components/schemas/EnderecoInput'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'Evento',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'titulo', type: 'string'),
+        new OA\Property(property: 'instituicao', type: 'string'),
+        new OA\Property(property: 'cidade', type: 'string'),
+        new OA\Property(property: 'uf', type: 'string'),
+        new OA\Property(property: 'data', type: 'string'),
+        new OA\Property(property: 'data_hora_termino', type: 'string', nullable: true),
+        new OA\Property(property: 'tipo_evento', type: 'string'),
+        new OA\Property(property: 'vagas', type: 'integer', nullable: true),
+        new OA\Property(property: 'descricao', type: 'string', nullable: true),
+        new OA\Property(property: 'inscritos', type: 'integer'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'EventosResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/Evento')),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'CreateInscricaoRequest',
+    required: ['id_evento'],
+    properties: [
+        new OA\Property(property: 'id_evento', type: 'integer', example: 10),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'InscricaoCreatedResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(
+            property: 'data',
+            required: ['status'],
+            properties: [
+                new OA\Property(property: 'status', type: 'string', example: 'pendente'),
+            ],
+            type: 'object'
+        ),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'Inscricao',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'titulo', type: 'string'),
+        new OA\Property(property: 'instituicao', type: 'string'),
+        new OA\Property(property: 'cidade', type: 'string'),
+        new OA\Property(property: 'uf', type: 'string'),
+        new OA\Property(property: 'data', type: 'string'),
+        new OA\Property(property: 'status', type: 'string'),
+        new OA\Property(property: 'data_inscricao', type: 'string'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'InscricoesResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/Inscricao')),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'IdResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(
+            property: 'data',
+            required: ['id'],
+            properties: [
+                new OA\Property(property: 'id', type: 'integer'),
+            ],
+            type: 'object'
+        ),
+    ],
+    type: 'object'
+)]
+final class Schemas
+{
+}
