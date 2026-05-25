@@ -1,0 +1,17 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+.phpunit.cache
+.phpunit.result.cache
+coverage
+vendor
+tests
+docs
+database
+cheer.dbml
+phpunit.xml
+README.md
+compose*.yml
+docker-compose*.yml
