@@ -22,6 +22,7 @@ abstract class TestCase extends PHPUnitTestCase
 
     protected function tearDown(): void
     {
+        $_SESSION = [];
         http_response_code(200);
 
         parent::tearDown();
