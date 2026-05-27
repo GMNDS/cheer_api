@@ -5,7 +5,7 @@ namespace Cheer\Services;
 use Cheer\Core\Config;
 use RuntimeException;
 
-final class AuthentikAdminClient
+final class AuthentikAdminClient implements AuthentikAdminClientInterface
 {
     /** @return array<string, mixed> */
     public function createUser(string $name, string $email, string $password, string $tipo): array
