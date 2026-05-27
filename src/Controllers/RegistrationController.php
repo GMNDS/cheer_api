@@ -9,12 +9,25 @@ use Cheer\Repositories\EnderecoRepository;
 use Cheer\Repositories\InstituicaoRepository;
 use Cheer\Repositories\LogRepository;
 use Cheer\Repositories\VoluntarioRepository;
+use Cheer\Services\AuthentikAdminClientInterface;
 use Cheer\Services\AuthentikAdminClient;
+use Cheer\Services\DatabaseTransactionManager;
+use Cheer\Services\TransactionManagerInterface;
 use OpenApi\Attributes as OA;
 use Throwable;
 
 final class RegistrationController
 {
+    public function __construct(
+        private readonly ?AuthentikAdminClientInterface $authentikClient = null,
+        private readonly ?TransactionManagerInterface $transactions = null,
+        private readonly ?object $enderecoRepository = null,
+        private readonly ?object $instituicaoRepository = null,
+        private readonly ?object $voluntarioRepository = null,
+        private readonly ?object $logRepository = null,
+    ) {
+    }
+
     #[OA\Post(
         path: '/api/auth/register-voluntario',
         summary: 'Cadastrar voluntario',
@@ -68,7 +81,7 @@ final class RegistrationController
     /** @param array<string, mixed> $data */
     private function register(Request $request, array $data, array $address, string $tipo): Response
     {
-        $authentik = new AuthentikAdminClient();
+        $authentik = $this->authentikClient ?? new AuthentikAdminClient();
         $authentikUser = [];
 
         try {
@@ -84,14 +97,14 @@ final class RegistrationController
                 throw new \RuntimeException('Could not resolve Authentik user identifier.');
             }
 
-            Database::connection()->beginTransaction();
+            $this->transactions()->begin();
 
-            $enderecoId = (new EnderecoRepository())->create($address);
+            $enderecoId = $this->enderecoRepository()->create($address);
             $profileId = $tipo === 'instituicao'
-                ? (new InstituicaoRepository())->create($authentikIdentifier, $enderecoId, $data)
-                : (new VoluntarioRepository())->create($authentikIdentifier, $enderecoId, $data);
+                ? $this->instituicaoRepository()->create($authentikIdentifier, $enderecoId, $data)
+                : $this->voluntarioRepository()->create($authentikIdentifier, $enderecoId, $data);
 
-            (new LogRepository())->create(
+            $this->logRepository()->create(
                 $tipo === 'instituicao' ? 'CADASTRO_INSTITUICAO' : 'CADASTRO_VOLUNTARIO',
                 "Cadastro de {$tipo} {$profileId}.",
                 'info',
@@ -100,7 +113,7 @@ final class RegistrationController
                 $tipo
             );
 
-            Database::connection()->commit();
+            $this->transactions()->commit();
 
             return Response::json([
                 'status' => 'success',
@@ -161,7 +174,7 @@ final class RegistrationController
     private function logRegistrationError(Request $request, string $message, string $tipo): void
     {
         try {
-            (new LogRepository())->create(
+            $this->logRepository()->create(
                 'ERRO_CADASTRO',
                 $message,
                 'error',
@@ -176,10 +189,33 @@ final class RegistrationController
     private function rollbackIfNeeded(): void
     {
         try {
-            if (Database::connection()->inTransaction()) {
-                Database::connection()->rollBack();
-            }
+            $this->transactions()->rollback();
         } catch (Throwable) {
         }
+    }
+
+    private function transactions(): TransactionManagerInterface
+    {
+        return $this->transactions ?? new DatabaseTransactionManager();
+    }
+
+    private function enderecoRepository(): object
+    {
+        return $this->enderecoRepository ?? new EnderecoRepository();
+    }
+
+    private function instituicaoRepository(): object
+    {
+        return $this->instituicaoRepository ?? new InstituicaoRepository();
+    }
+
+    private function voluntarioRepository(): object
+    {
+        return $this->voluntarioRepository ?? new VoluntarioRepository();
+    }
+
+    private function logRepository(): object
+    {
+        return $this->logRepository ?? new LogRepository();
     }
 }

@@ -12,6 +12,12 @@ use Throwable;
 
 final class InscricaoController
 {
+    public function __construct(
+        private readonly ?object $inscricaoRepository = null,
+        private readonly ?object $logRepository = null,
+    ) {
+    }
+
     #[OA\Post(
         path: '/api/eventos/inscrever',
         summary: 'Inscrever voluntario em evento',
@@ -44,8 +50,8 @@ final class InscricaoController
         }
 
         try {
-            (new InscricaoRepository())->create((int) $auth['profile']['id'], $eventoId);
-            (new LogRepository())->create(
+            $this->inscricaoRepository()->create((int) $auth['profile']['id'], $eventoId);
+            $this->logRepository()->create(
                 'INSCRICAO_EVENTO',
                 "Inscricao no evento {$eventoId}.",
                 'info',
@@ -60,7 +66,7 @@ final class InscricaoController
             ], 201);
         } catch (Throwable $exception) {
             try {
-                (new LogRepository())->create(
+                $this->logRepository()->create(
                     'ERRO_INSCRICAO_EVENTO',
                     $exception->getMessage(),
                     'error',
@@ -99,7 +105,7 @@ final class InscricaoController
 
         return Response::json([
             'status' => 'success',
-            'data' => (new InscricaoRepository())->listByVoluntario((int) $auth['profile']['id']),
+            'data' => $this->inscricaoRepository()->listByVoluntario((int) $auth['profile']['id']),
         ]);
     }
 
@@ -110,7 +116,7 @@ final class InscricaoController
             $profile = Auth::profile();
 
             if (($profile['tipo'] ?? null) !== 'voluntario') {
-                (new LogRepository())->create(
+                $this->logRepository()->create(
                     'PERMISSAO_NEGADA',
                     'Expected voluntario.',
                     'warning',
@@ -132,5 +138,15 @@ final class InscricaoController
                 'message' => $exception->getMessage(),
             ], 401);
         }
+    }
+
+    private function inscricaoRepository(): object
+    {
+        return $this->inscricaoRepository ?? new InscricaoRepository();
+    }
+
+    private function logRepository(): object
+    {
+        return $this->logRepository ?? new LogRepository();
     }
 }
