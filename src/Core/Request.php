@@ -10,7 +10,8 @@ final class Request
         private readonly string $path,
         private readonly array $headers,
         private readonly array $query,
-        private readonly array $body
+        private readonly array $body,
+        private readonly array $pathParams = [],
     ) {
     }
 
@@ -30,6 +31,18 @@ final class Request
         );
     }
 
+    public function withPathParams(array $params): self
+    {
+        return new self(
+            $this->method,
+            $this->path,
+            $this->headers,
+            $this->query,
+            $this->body,
+            $params
+        );
+    }
+
     public function method(): string
     {
         return $this->method;
@@ -42,13 +55,13 @@ final class Request
 
     public function input(string $key, mixed $default = null): mixed
     {
-        return $this->body[$key] ?? $this->query[$key] ?? $default;
+        return $this->pathParams[$key] ?? $this->body[$key] ?? $this->query[$key] ?? $default;
     }
 
     /** @return array<string, mixed> */
     public function all(): array
     {
-        return array_merge($this->query, $this->body);
+        return array_merge($this->query, $this->body, $this->pathParams);
     }
 
     public function ip(): ?string
