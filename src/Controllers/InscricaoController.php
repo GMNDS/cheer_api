@@ -6,6 +6,7 @@ use Cheer\Core\Auth;
 use Cheer\Core\Request;
 use Cheer\Core\Response;
 use Cheer\Repositories\InscricaoRepository;
+use Cheer\Repositories\EventoRepository;
 use Cheer\Repositories\LogRepository;
 use OpenApi\Attributes as OA;
 use Throwable;
@@ -14,8 +15,8 @@ final class InscricaoController
 {
     public function __construct(
         private readonly ?object $inscricaoRepository = null,
-        private readonly ?object $eventoRepository = null,
         private readonly ?object $logRepository = null,
+        private readonly ?object $eventoRepository = null,
     ) {
     }
 

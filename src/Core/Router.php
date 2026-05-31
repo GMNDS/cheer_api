@@ -103,7 +103,14 @@ final class Router
 
     private function toRegex(string $path): string
     {
-        $regex = preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $path);
+        $escaped = preg_quote($path, '#');
+
+        $regex = preg_replace_callback(
+            '/\\\{(\w+)\\\}/',
+            static fn (array $matches): string => '(?P<' . $matches[1] . '>[^/]+)',
+            $escaped
+        );
+
         return '#^' . $regex . '$#';
     }
 }

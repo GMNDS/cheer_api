@@ -19,6 +19,21 @@ final class Request
     {
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
         $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+        $path = str_replace('\\', '/', $path);
+
+        $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+        if ($scriptName !== '') {
+            if (str_starts_with($path, $scriptName)) {
+                $path = substr($path, strlen($scriptName)) ?: '/';
+            } else {
+                $scriptDirectory = rtrim(dirname($scriptName), '/');
+
+                if ($scriptDirectory !== '' && str_starts_with($path, $scriptDirectory)) {
+                    $path = substr($path, strlen($scriptDirectory)) ?: '/';
+                }
+            }
+        }
+
         $rawBody = file_get_contents('php://input') ?: '';
         $decodedBody = json_decode($rawBody, true);
 
