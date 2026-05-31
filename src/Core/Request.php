@@ -10,7 +10,8 @@ final class Request
         private readonly string $path,
         private readonly array $headers,
         private readonly array $query,
-        private readonly array $body
+        private readonly array $body,
+        private readonly array $pathParams = [],
     ) {
     }
 
@@ -18,6 +19,21 @@ final class Request
     {
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
         $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+        $path = str_replace('\\', '/', $path);
+
+        $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+        if ($scriptName !== '') {
+            if (str_starts_with($path, $scriptName)) {
+                $path = substr($path, strlen($scriptName)) ?: '/';
+            } else {
+                $scriptDirectory = rtrim(dirname($scriptName), '/');
+
+                if ($scriptDirectory !== '' && str_starts_with($path, $scriptDirectory)) {
+                    $path = substr($path, strlen($scriptDirectory)) ?: '/';
+                }
+            }
+        }
+
         $rawBody = file_get_contents('php://input') ?: '';
         $decodedBody = json_decode($rawBody, true);
 
@@ -27,6 +43,18 @@ final class Request
             self::headers(),
             $_GET,
             is_array($decodedBody) ? $decodedBody : $_POST
+        );
+    }
+
+    public function withPathParams(array $params): self
+    {
+        return new self(
+            $this->method,
+            $this->path,
+            $this->headers,
+            $this->query,
+            $this->body,
+            $params
         );
     }
 
@@ -42,13 +70,13 @@ final class Request
 
     public function input(string $key, mixed $default = null): mixed
     {
-        return $this->body[$key] ?? $this->query[$key] ?? $default;
+        return $this->pathParams[$key] ?? $this->body[$key] ?? $this->query[$key] ?? $default;
     }
 
     /** @return array<string, mixed> */
     public function all(): array
     {
-        return array_merge($this->query, $this->body);
+        return array_merge($this->query, $this->body, $this->pathParams);
     }
 
     public function ip(): ?string

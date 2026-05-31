@@ -148,11 +148,62 @@ final class EventoRepository
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function update(int $id, array $data): bool
+{
+    $sql = "
+        UPDATE evento
+        SET
+            titulo = :titulo,
+            descricao = :descricao,
+            tipo_evento = :tipo_evento
+        WHERE id = :id
+    ";
+
+    $stmt = Database::connection()->prepare($sql);
+
+    $stmt->bindValue(':titulo', $data['titulo']);
+    $stmt->bindValue(':descricao', $data['descricao']);
+    $stmt->bindValue(':tipo_evento', $data['tipo_evento']);
+    $stmt->bindValue(':id', $id);
+
+    return $stmt->execute();
+}
+
+    public function delete(int $id): bool
+{
+    $sql = "
+        DELETE FROM evento
+        WHERE id = :id
+    ";
+
+    $stmt = Database::connection()->prepare($sql);
+
+    $stmt->bindValue(':id', $id);
+
+    return $stmt->execute();
+}
+
+
     /** @param array<string, mixed> $event */
     private function sanitizeEvent(array $event): array
     {
         unset($event['lat'], $event['lng'], $event['_distance_km']);
 
         return $event;
+    }
+
+    public function findById(int $id): array|false
+    {
+        $sql = "
+            SELECT *
+            FROM evento
+            WHERE id = :id
+            LIMIT 1
+        ";
+
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->bindValue(':id', $id);
+        $stmt->execute();
+        return $stmt->fetch();
     }
 }

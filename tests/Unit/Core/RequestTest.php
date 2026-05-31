@@ -40,4 +40,19 @@ final class RequestTest extends TestCase
 
         self::assertNull($request->bearerToken());
     }
+
+    public function testCaptureStripsScriptNamePrefixFromPath(): void
+    {
+        $originalServer = $_SERVER;
+
+        $_SERVER['REQUEST_URI'] = '/public/index.php/api/eventos/123';
+        $_SERVER['SCRIPT_NAME'] = '/public/index.php';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $request = Request::capture();
+
+        self::assertSame('/api/eventos/123', $request->path());
+
+        $_SERVER = $originalServer;
+    }
 }

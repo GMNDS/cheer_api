@@ -38,6 +38,23 @@ final class RouterTest extends TestCase
         );
     }
 
+    public function testDispatchesAParameterizedRoute(): void
+    {
+        $router = new Router();
+        $router->get('/api/eventos/{id}', static fn (Request $request, int $id): array => [
+            'id' => $id,
+            'path' => $request->path(),
+        ]);
+
+        $result = $this->render($router->dispatch(new Request('GET', '/api/eventos/123', [], [], [])));
+
+        self::assertSame(200, $result['status']);
+        self::assertJsonStringEqualsJsonString(
+            '{"data":{"id":123,"path":"/api/eventos/123"}}',
+            $result['body']
+        );
+    }
+
     public function testPreservesAResponseReturnedByAHandler(): void
     {
         $router = new Router();

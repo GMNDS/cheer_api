@@ -10,8 +10,11 @@ permissions:
 jobs:
   phpunit:
     name: Testes PHP
-    runs-on: docker
-
+    strategy:
+      matrix:
+        runner: [docker, ubuntu-latest]
+    runs-on: ${{ matrix.runner }}
+    
     steps:
       - name: Baixar codigo
         uses: actions/checkout@v6

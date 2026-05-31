@@ -40,7 +40,7 @@ final class EventoController
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ]
     )]
-    public function index(Request $request): Response
+     public function index(Request $request): Response
     {
         $nearby = $this->nearbyParameters($request);
 
@@ -48,11 +48,175 @@ final class EventoController
             return $nearby;
         }
 
+        $page = (int) $request->input('page', 1);
+$limit = (int) $request->input('limit', 10);
+
+$page = max($page, 1);
+$limit = max($limit, 1);
+
+$offset = ($page - 1) * $limit;
+
+
+
         return Response::json([
             'status' => 'success',
             'data' => $this->eventoRepository()->listAvailable($nearby['lat'], $nearby['lng'], $nearby['raio_km']),
         ]);
     }
+
+    #[OA\Get (
+        path: '/api/eventos/{id}',
+        summary: 'Buscar evento por ID',
+        tags: ['Eventos'],
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: 'ID do evento',
+                schema: new OA\Schema(type: 'integer')
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Evento encontrado',
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Evento nao encontrado'
+            ),
+        ]
+    )]
+    public function show(Request $request, int $id): Response
+    {
+        $evento = $this->eventoRepository()->findById($id);
+
+        if (!$evento) {
+            return Response::json([
+                'status' => 'error',
+                'message' => 'Evento nao encontrado',
+            ], 404);
+        }
+
+        return Response::json([
+            'status' => 'success',
+            'data' => $evento,
+        ]);
+    }
+
+    #[OA\Put(
+    path: '/api/eventos/{id}',
+    summary: 'Atualizar evento',
+    security: [['cookieAuth' => []]],
+    tags: ['Eventos'],
+    parameters: [
+        new OA\Parameter(
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: new OA\Schema(type: 'integer')
+        ),
+    ],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(property: 'titulo', type: 'string'),
+                new OA\Property(property: 'descricao', type: 'string'),
+                new OA\Property(property: 'tipo_evento', type: 'string'),
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(response: 200, description: 'Evento atualizado'),
+        new OA\Response(response: 404, description: 'Evento nao encontrado'),
+    ]
+)]
+public function update(Request $request, int $id): Response
+{
+    $auth = $this->requireProfile($request, 'instituicao');
+
+    if ($auth instanceof Response) {
+        return $auth;
+    }
+
+    $evento = $this->eventoRepository()->findById($id);
+
+    if (!$evento) {
+        return Response::json([
+            'status' => 'error',
+            'message' => 'Evento nao encontrado.',
+        ], 404);
+    }
+
+    if ((int) $evento['id_instituicao'] !== (int) $auth['profile']['id']) {
+    return Response::json([
+        'status' => 'error',
+        'message' => 'Permission denied.',
+    ], 403);
+}
+
+    $data = $request->all();
+
+    $this->eventoRepository()->update($id, $data);
+
+    return Response::json([
+        'status' => 'success',
+        'message' => 'Evento atualizado com sucesso.',
+    ]);
+}
+
+#[OA\Delete(
+    path: '/api/eventos/{id}',
+    summary: 'Deletar evento',
+    security: [['cookieAuth' => []]],
+    tags: ['Eventos'],
+    parameters: [
+        new OA\Parameter(
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: new OA\Schema(type: 'integer')
+        ),
+    ],
+    responses: [
+        new OA\Response(response: 200, description: 'Evento deletado'),
+        new OA\Response(response: 404, description: 'Evento nao encontrado'),
+    ]
+)]
+public function destroy(Request $request, int $id): Response
+{
+    $auth = $this->requireProfile($request, 'instituicao');
+
+    if ($auth instanceof Response) {
+        return $auth;
+    }
+
+    $evento = $this->eventoRepository()->findById($id);
+
+    if (!$evento) {
+        return Response::json([
+            'status' => 'error',
+            'message' => 'Evento nao encontrado.',
+        ], 404);
+    }
+
+    if ((int) $evento['id_instituicao'] !== (int) $auth['profile']['id']) {
+    return Response::json([
+        'status' => 'error',
+        'message' => 'Permission denied.',
+    ], 403);
+}
+
+    $this->eventoRepository()->delete($id);
+
+    return Response::json([
+        'status' => 'success',
+        'message' => 'Evento deletado com sucesso.',
+    ]);
+}
+
 
     #[OA\Post(
         path: '/api/eventos',
