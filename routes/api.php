@@ -47,7 +47,14 @@ $router->post('/api/auth/logout', [$auth, 'logout']);
 $router->post('/api/auth/register-voluntario', [$registration, 'registerVoluntario']);
 $router->post('/api/auth/register-instituicao', [$registration, 'registerInstituicao']);
 $router->get('/api/eventos', [$eventos, 'index']);
+$router->get('/api/eventos/{id}', [$eventos, 'show']);
+$router->put('/api/eventos/{id}', [$eventos, 'update']);
+$router->delete('/api/eventos/{id}', [$eventos, 'destroy']);
 $router->post('/api/eventos', [$eventos, 'store']);
 $router->get('/api/meus-eventos', [$eventos, 'meusEventos']);
 $router->post('/api/eventos/inscrever', [$inscricoes, 'store']);
 $router->get('/api/minhas-inscricoes', [$inscricoes, 'minhasInscricoes']);
+
+
+$router->get('/api/eventos/{id}/inscritos', [$inscricoes, 'inscritos']);
+$router->patch('/api/eventos/{id}/inscritos/{voluntario_id}/status', [$inscricoes, 'updateStatus']);
