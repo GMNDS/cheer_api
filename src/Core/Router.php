@@ -88,11 +88,22 @@ final class Router
 
     private function add(string $method, string $path, callable $handler): void
     {
-        $this->routes[$this->key($method, $path)] = $handler;
+        $normalizedPath = '/' . trim($path, '/');
+        $params         = [];
+
+        preg_match_all('/\{(\w+)\}/', $normalizedPath, $paramMatches);
+        $params = $paramMatches[1];
+
+        $this->routes[] = [
+            'pattern' => strtoupper($method) . ' ' . $normalizedPath,
+            'handler' => $handler,
+            'params'  => $params,
+        ];
     }
 
-    private function key(string $method, string $path): string
+    private function toRegex(string $path): string
     {
-        return strtoupper($method) . ' ' . ('/' . trim($path, '/'));
+        $regex = preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $path);
+        return '#^' . $regex . '$#';
     }
 }
