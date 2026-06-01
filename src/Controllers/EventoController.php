@@ -3,7 +3,6 @@
 namespace Cheer\Controllers;
 
 use Cheer\Core\Auth;
-use Cheer\Core\Database;
 use Cheer\Core\Request;
 use Cheer\Core\Response;
 use Cheer\Repositories\EnderecoRepository;
@@ -11,6 +10,8 @@ use Cheer\Repositories\EventoRepository;
 use Cheer\Repositories\LogRepository;
 use Cheer\Services\DatabaseTransactionManager;
 use Cheer\Services\TransactionManagerInterface;
+use DateTimeImmutable;
+use Exception;
 use OpenApi\Attributes as OA;
 use Throwable;
 
@@ -40,7 +41,7 @@ final class EventoController
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
         ]
     )]
-     public function index(Request $request): Response
+    public function index(Request $request): Response
     {
         $nearby = $this->nearbyParameters($request);
 
@@ -48,19 +49,11 @@ final class EventoController
             return $nearby;
         }
 
-        $page = (int) $request->input('page', 1);
-$limit = (int) $request->input('limit', 10);
-
-$page = max($page, 1);
-$limit = max($limit, 1);
-
-$offset = ($page - 1) * $limit;
-
-
-
         return Response::json([
             'status' => 'success',
-            'data' => $this->eventoRepository()->listAvailable($nearby['lat'], $nearby['lng'], $nearby['raio_km']),
+            'data' => $nearby === null
+                ? $this->eventoRepository()->listAvailable()
+                : $this->eventoRepository()->listAvailable($nearby['lat'], $nearby['lng'], $nearby['raio_km']),
         ]);
     }
 
@@ -263,6 +256,16 @@ public function destroy(Request $request, int $id): Response
             ], 422);
         }
 
+        $invalidFields = $this->invalidEventFields($data);
+
+        if ($invalidFields !== []) {
+            return Response::json([
+                'status' => 'error',
+                'message' => 'Invalid fields.',
+                'fields' => $invalidFields,
+            ], 422);
+        }
+
         try {
             $this->transactions()->begin();
 
@@ -356,6 +359,50 @@ public function destroy(Request $request, int $id): Response
     private function missing(array $data, array $required): array
     {
         return array_values(array_filter($required, static fn (string $field): bool => empty($data[$field])));
+    }
+
+    /** @param array<string, mixed> $data */
+    private function invalidEventFields(array $data): array
+    {
+        $fields = [];
+        $start = $this->parseDateTime($data['data_hora_inicio'] ?? $data['data'] ?? null);
+
+        if ($start === null || $start < new DateTimeImmutable()) {
+            $fields[] = 'data_hora_inicio';
+        }
+
+        if (array_key_exists('data_hora_termino', $data) && $data['data_hora_termino'] !== null && $data['data_hora_termino'] !== '') {
+            $end = $this->parseDateTime($data['data_hora_termino']);
+
+            if ($end === null || ($start !== null && $end <= $start)) {
+                $fields[] = 'data_hora_termino';
+            }
+        }
+
+        $volunteerLimit = $data['num_max_voluntarios'] ?? $data['vagas'] ?? null;
+
+        if ($volunteerLimit !== null && $volunteerLimit !== '') {
+            $volunteers = filter_var($volunteerLimit, FILTER_VALIDATE_INT);
+
+            if ($volunteers === false || $volunteers <= 0) {
+                $fields[] = array_key_exists('num_max_voluntarios', $data) ? 'num_max_voluntarios' : 'vagas';
+            }
+        }
+
+        return array_values(array_unique($fields));
+    }
+
+    private function parseDateTime(mixed $value): ?DateTimeImmutable
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable($value);
+        } catch (Exception) {
+            return null;
+        }
     }
 
     /**
