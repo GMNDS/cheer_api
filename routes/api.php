@@ -1,6 +1,7 @@
 <?php
 
 use Cheer\Controllers\AuthController;
+use Cheer\Controllers\DashboardController;
 use Cheer\Controllers\DocumentationController;
 use Cheer\Controllers\EventoController;
 use Cheer\Controllers\HealthController;
@@ -12,6 +13,7 @@ use Cheer\Core\Router;
 
 $health = new HealthController();
 $auth = new AuthController();
+$dashboard = new DashboardController();
 $eventos = new EventoController();
 $inscricoes = new InscricaoController();
 $registration = new RegistrationController();
@@ -54,6 +56,7 @@ $router->post('/api/eventos', [$eventos, 'store']);
 $router->get('/api/meus-eventos', [$eventos, 'meusEventos']);
 $router->post('/api/eventos/inscrever', [$inscricoes, 'store']);
 $router->get('/api/minhas-inscricoes', [$inscricoes, 'minhasInscricoes']);
+$router->get('/api/dashboard/instituicao', [$dashboard, 'instituicao']);
 
 
 $router->get('/api/eventos/{id}/inscritos', [$inscricoes, 'inscritos']);

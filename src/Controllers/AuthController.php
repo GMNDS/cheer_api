@@ -214,6 +214,7 @@ final class AuthController
                 'categoria' => $profile['categoria'],
                 'cidade' => $profile['cidade'],
                 'uf' => $profile['uf'],
+                'endereco' => $this->presentAddress($profile),
             ];
         }
 
@@ -225,6 +226,18 @@ final class AuthController
             'telefone' => $profile['telefone'],
             'cidade' => $profile['cidade'],
             'uf' => $profile['uf'],
+        ];
+    }
+
+    /** @param array<string, mixed> $profile */
+    private function presentAddress(array $profile): array
+    {
+        return [
+            'rua' => $profile['rua'] ?? '',
+            'bairro' => $profile['bairro'] ?? '',
+            'cidade' => $profile['cidade'] ?? '',
+            'uf' => $profile['uf'] ?? '',
+            'codigo_postal' => $profile['codigo_postal'] ?? '',
         ];
     }
 

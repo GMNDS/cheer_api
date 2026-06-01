@@ -2,7 +2,6 @@
 
 namespace Cheer\Controllers;
 
-use Cheer\Core\Database;
 use Cheer\Core\Request;
 use Cheer\Core\Response;
 use Cheer\Repositories\EnderecoRepository;
@@ -50,6 +49,15 @@ final class RegistrationController
             return $this->validationError($missing);
         }
 
+        $invalid = array_merge(
+            $this->invalidCommonFields($data),
+            strlen($this->digits($data['cpf'] ?? '')) === 11 ? [] : ['cpf']
+        );
+
+        if ($invalid !== []) {
+            return $this->validationError($invalid, 'Invalid fields.');
+        }
+
         return $this->register($request, $data, $address, 'voluntario');
     }
 
@@ -73,6 +81,15 @@ final class RegistrationController
 
         if ($missing !== []) {
             return $this->validationError($missing);
+        }
+
+        $invalid = array_merge(
+            $this->invalidCommonFields($data),
+            strlen($this->digits($data['cnpj'] ?? '')) === 14 ? [] : ['cnpj']
+        );
+
+        if ($invalid !== []) {
+            return $this->validationError($invalid, 'Invalid fields.');
         }
 
         return $this->register($request, $data, $address, 'instituicao');
@@ -162,13 +179,36 @@ final class RegistrationController
     }
 
     /** @param list<string> $fields */
-    private function validationError(array $fields): Response
+    private function validationError(array $fields, string $message = 'Missing required fields.'): Response
     {
         return Response::json([
             'status' => 'error',
-            'message' => 'Missing required fields.',
+            'message' => $message,
             'fields' => array_values(array_unique($fields)),
         ], 422);
+    }
+
+    /** @param array<string, mixed> $data */
+    private function invalidCommonFields(array $data): array
+    {
+        $fields = [];
+        $password = (string) ($data['password'] ?? '');
+
+        if (
+            strlen($password) < 8
+            || !preg_match('/\d/', $password)
+            || !preg_match('/[A-Z]/', $password)
+            || !preg_match('/[!@#$%^&*]/', $password)
+        ) {
+            $fields[] = 'password';
+        }
+
+        return $fields;
+    }
+
+    private function digits(mixed $value): string
+    {
+        return preg_replace('/\D+/', '', (string) $value) ?? '';
     }
 
     private function logRegistrationError(Request $request, string $message, string $tipo): void
