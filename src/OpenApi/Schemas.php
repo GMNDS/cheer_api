@@ -262,6 +262,88 @@ use OpenApi\Attributes as OA;
     ],
     type: 'object'
 )]
+#[OA\Schema(
+    schema: 'DashboardSeriesPoint',
+    properties: [
+        new OA\Property(property: 'label', type: 'string'),
+        new OA\Property(property: 'value', type: 'integer'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'DashboardEventoRow',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'titulo', type: 'string'),
+        new OA\Property(property: 'data', type: 'string'),
+        new OA\Property(property: 'data_hora_termino', type: 'string', nullable: true),
+        new OA\Property(property: 'tipo_evento', type: 'string'),
+        new OA\Property(property: 'cidade', type: 'string'),
+        new OA\Property(property: 'uf', type: 'string'),
+        new OA\Property(property: 'vagas', type: 'integer', nullable: true),
+        new OA\Property(property: 'inscritos', type: 'integer'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'DashboardInscritoRow',
+    properties: [
+        new OA\Property(property: 'id_evento', type: 'integer'),
+        new OA\Property(property: 'evento', type: 'string'),
+        new OA\Property(property: 'id_voluntario', type: 'integer'),
+        new OA\Property(property: 'nome', type: 'string'),
+        new OA\Property(property: 'email', type: 'string'),
+        new OA\Property(property: 'telefone', type: 'string', nullable: true),
+        new OA\Property(property: 'status', type: 'string'),
+        new OA\Property(property: 'data_inscricao', type: 'string'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'InstitutionDashboardResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(
+            property: 'data',
+            properties: [
+                new OA\Property(
+                    property: 'kpis',
+                    properties: [
+                        new OA\Property(property: 'total_eventos', type: 'integer'),
+                        new OA\Property(property: 'eventos_futuros', type: 'integer'),
+                        new OA\Property(property: 'total_inscritos', type: 'integer'),
+                        new OA\Property(property: 'inscricoes_pendentes', type: 'integer'),
+                        new OA\Property(property: 'inscricoes_aprovadas', type: 'integer'),
+                        new OA\Property(property: 'inscricoes_rejeitadas', type: 'integer'),
+                        new OA\Property(property: 'taxa_ocupacao_percentual', type: 'number', format: 'float'),
+                    ],
+                    type: 'object'
+                ),
+                new OA\Property(
+                    property: 'series',
+                    properties: [
+                        new OA\Property(property: 'eventos_por_mes', type: 'array', items: new OA\Items(ref: '#/components/schemas/DashboardSeriesPoint')),
+                        new OA\Property(property: 'eventos_por_tipo', type: 'array', items: new OA\Items(ref: '#/components/schemas/DashboardSeriesPoint')),
+                        new OA\Property(property: 'inscricoes_por_status', type: 'array', items: new OA\Items(ref: '#/components/schemas/DashboardSeriesPoint')),
+                        new OA\Property(property: 'inscritos_por_evento', type: 'array', items: new OA\Items(ref: '#/components/schemas/DashboardSeriesPoint')),
+                    ],
+                    type: 'object'
+                ),
+                new OA\Property(
+                    property: 'tables',
+                    properties: [
+                        new OA\Property(property: 'eventos', type: 'array', items: new OA\Items(ref: '#/components/schemas/DashboardEventoRow')),
+                        new OA\Property(property: 'inscritos_recentes', type: 'array', items: new OA\Items(ref: '#/components/schemas/DashboardInscritoRow')),
+                    ],
+                    type: 'object'
+                ),
+            ],
+            type: 'object'
+        ),
+    ],
+    type: 'object'
+)]
 final class Schemas
 {
 }
