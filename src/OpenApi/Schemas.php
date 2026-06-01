@@ -154,6 +154,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'categoria', type: 'string', nullable: true),
         new OA\Property(property: 'cidade', type: 'string'),
         new OA\Property(property: 'uf', type: 'string'),
+        new OA\Property(property: 'endereco', ref: '#/components/schemas/EnderecoInput', nullable: true),
     ],
     type: 'object'
 )]
