@@ -18,8 +18,8 @@ final class EnderecoRepository
         }
 
         $statement = Database::connection()->prepare(
-            'INSERT INTO enderecos (rua, bairro, cidade, uf, codigo_postal, lat, lng)
-             VALUES (:rua, :bairro, :cidade, :uf, :codigo_postal, :lat, :lng)'
+            'INSERT INTO enderecos (rua, bairro, cidade, uf, codigo_postal, numero, complemento, lat, lng)
+             VALUES (:rua, :bairro, :cidade, :uf, :codigo_postal, :numero, :complemento, :lat, :lng)'
         );
         $statement->execute([
             'rua' => $data['rua'] ?? '',
@@ -27,6 +27,8 @@ final class EnderecoRepository
             'cidade' => $data['cidade'] ?? '',
             'uf' => strtoupper((string) ($data['uf'] ?? '')),
             'codigo_postal' => preg_replace('/\D+/', '', (string) ($data['codigo_postal'] ?? $data['cep'] ?? '')),
+            'numero' => $data['numero'] ?? null,
+            'complemento' => $data['complemento'] ?? null,
             'lat' => $data['lat'] ?? null,
             'lng' => $data['lng'] ?? null,
         ]);
@@ -51,6 +53,8 @@ final class EnderecoRepository
                  cidade = :cidade,
                  uf = :uf,
                  codigo_postal = :codigo_postal,
+                 numero = :numero,
+                 complemento = :complemento,
                  lat = :lat,
                  lng = :lng
              WHERE id = :id'
@@ -62,6 +66,8 @@ final class EnderecoRepository
             'cidade' => $data['cidade'] ?? '',
             'uf' => strtoupper((string) ($data['uf'] ?? '')),
             'codigo_postal' => preg_replace('/\D+/', '', (string) ($data['codigo_postal'] ?? $data['cep'] ?? '')),
+            'numero' => $data['numero'] ?? null,
+            'complemento' => $data['complemento'] ?? null,
             'lat' => $data['lat'] ?? null,
             'lng' => $data['lng'] ?? null,
         ]);

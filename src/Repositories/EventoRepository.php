@@ -16,8 +16,13 @@ final class EventoRepository
                 ev.id,
                 ev.titulo,
                 inst.nome AS instituicao,
+                end.rua,
+                end.numero,
+                end.complemento,
+                end.bairro,
                 end.cidade,
                 end.uf,
+                end.codigo_postal,
                 end.lat,
                 end.lng,
                 ev.data_hora_inicio AS data,
@@ -30,7 +35,7 @@ final class EventoRepository
              INNER JOIN instituicao inst ON inst.id = ev.id_instituicao
              INNER JOIN enderecos end ON end.id = ev.id_endereco
              LEFT JOIN voluntario_evento ve ON ve.id_evento = ev.id
-             GROUP BY ev.id, inst.nome, end.cidade, end.uf, end.lat, end.lng, ev.data_hora_inicio, ev.data_hora_termino, ev.tipo_evento, ev.num_max_voluntarios, ev.descricao
+               GROUP BY ev.id, inst.nome, end.rua, end.numero, end.complemento, end.bairro, end.cidade, end.uf, end.codigo_postal, end.lat, end.lng, ev.data_hora_inicio, ev.data_hora_termino, ev.tipo_evento, ev.num_max_voluntarios, ev.descricao
              ORDER BY ev.data_hora_inicio ASC'
         );
 
@@ -128,8 +133,15 @@ final class EventoRepository
             'SELECT
                 ev.id,
                 ev.titulo,
+                end.rua,
+                end.numero,
+                end.complemento,
+                end.bairro,
                 end.cidade,
                 end.uf,
+                end.codigo_postal,
+                end.lat,
+                end.lng,
                 ev.data_hora_inicio AS data,
                 ev.data_hora_termino,
                 ev.tipo_evento,
@@ -140,7 +152,7 @@ final class EventoRepository
              INNER JOIN enderecos end ON end.id = ev.id_endereco
              LEFT JOIN voluntario_evento ve ON ve.id_evento = ev.id
              WHERE ev.id_instituicao = :id_instituicao
-             GROUP BY ev.id, end.cidade, end.uf, ev.data_hora_inicio, ev.data_hora_termino, ev.tipo_evento, ev.num_max_voluntarios, ev.descricao
+             GROUP BY ev.id, end.rua, end.numero, end.complemento, end.bairro, end.cidade, end.uf, end.codigo_postal, end.lat, end.lng, ev.data_hora_inicio, ev.data_hora_termino, ev.tipo_evento, ev.num_max_voluntarios, ev.descricao
              ORDER BY ev.data_hora_inicio DESC'
         );
         $statement->execute(['id_instituicao' => $instituicaoId]);
@@ -164,6 +176,8 @@ final class EventoRepository
                 ev.num_max_voluntarios AS vagas,
                 ev.descricao,
                 end.rua,
+                end.numero,
+                end.complemento,
                 end.bairro,
                 end.cidade,
                 end.uf,
@@ -188,6 +202,8 @@ final class EventoRepository
 
         $event['endereco'] = [
             'rua' => $event['rua'],
+            'numero' => $event['numero'],
+            'complemento' => $event['complemento'],
             'bairro' => $event['bairro'],
             'cidade' => $event['cidade'],
             'uf' => $event['uf'],
@@ -196,7 +212,7 @@ final class EventoRepository
             'lng' => $event['lng'],
         ];
 
-        unset($event['rua'], $event['bairro'], $event['cidade'], $event['uf'], $event['codigo_postal'], $event['lat'], $event['lng']);
+        unset($event['rua'], $event['numero'], $event['complemento'], $event['bairro'], $event['cidade'], $event['uf'], $event['codigo_postal'], $event['lat'], $event['lng']);
 
         return $event;
     }
@@ -262,7 +278,7 @@ final class EventoRepository
     /** @param array<string, mixed> $event */
     private function sanitizeEvent(array $event): array
     {
-        unset($event['lat'], $event['lng'], $event['_distance_km']);
+        unset($event['_distance_km']);
 
         return $event;
     }

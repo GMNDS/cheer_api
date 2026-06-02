@@ -234,6 +234,8 @@ final class AuthController
     {
         return [
             'rua' => $profile['rua'] ?? '',
+            'numero' => $profile['numero'] ?? '',
+            'complemento' => $profile['complemento'] ?? '',
             'bairro' => $profile['bairro'] ?? '',
             'cidade' => $profile['cidade'] ?? '',
             'uf' => $profile['uf'] ?? '',

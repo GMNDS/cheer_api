@@ -89,6 +89,7 @@ final class AddressGeocoder
     {
         $parts = array_filter([
             trim((string) ($address['rua'] ?? '')),
+            trim((string) ($address['numero'] ?? '')),
             trim((string) ($address['bairro'] ?? '')),
             trim((string) ($address['cidade'] ?? '')),
             trim((string) ($address['uf'] ?? '')),
