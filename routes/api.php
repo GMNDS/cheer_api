@@ -6,6 +6,7 @@ use Cheer\Controllers\DocumentationController;
 use Cheer\Controllers\EventoController;
 use Cheer\Controllers\HealthController;
 use Cheer\Controllers\InscricaoController;
+use Cheer\Controllers\LogController;
 use Cheer\Controllers\RegistrationController;
 use Cheer\Core\Router;
 
@@ -16,6 +17,7 @@ $auth = new AuthController();
 $dashboard = new DashboardController();
 $eventos = new EventoController();
 $inscricoes = new InscricaoController();
+$logs = new LogController();
 $registration = new RegistrationController();
 $docs = new DocumentationController();
 
@@ -24,8 +26,10 @@ $router->get('/docs', [$docs, 'scalar']);
 $router->get('/api/docs', [$docs, 'scalar']);
 $router->get('/openapi.json', [$docs, 'openapi']);
 $router->get('/api/openapi.json', [$docs, 'openapi']);
+
 $router->get('/health', [$health, 'index']);
 $router->get('/health/database', [$health, 'database']);
+
 $router->get('/auth/config', [$auth, 'config']);
 $router->get('/auth/login', [$auth, 'login']);
 $router->get('/auth/callback', [$auth, 'callback']);
@@ -34,11 +38,19 @@ $router->post('/auth/logout', [$auth, 'logout']);
 $router->post('/auth/register-voluntario', [$registration, 'registerVoluntario']);
 $router->post('/auth/register-instituicao', [$registration, 'registerInstituicao']);
 $router->get('/me', [$auth, 'me']);
+
 $router->get('/eventos', [$eventos, 'index']);
 $router->post('/eventos', [$eventos, 'store']);
+$router->get('/eventos/{id}', [$eventos, 'show']);
+$router->put('/eventos/{id}', [$eventos, 'update']);
+$router->delete('/eventos/{id}', [$eventos, 'destroy']);
 $router->get('/meus-eventos', [$eventos, 'meusEventos']);
 $router->post('/eventos/inscrever', [$inscricoes, 'store']);
+$router->get('/eventos/{id}/inscritos', [$inscricoes, 'inscritos']);
+$router->patch('/eventos/{id}/inscritos/{voluntario_id}/status', [$inscricoes, 'updateStatus']);
 $router->get('/minhas-inscricoes', [$inscricoes, 'minhasInscricoes']);
+$router->get('/dashboard/instituicao', [$dashboard, 'instituicao']);
+$router->get('/logs', [$logs, 'index']);
 
 $router->get('/api/me', [$auth, 'me']);
 $router->get('/api/auth/config', [$auth, 'config']);
@@ -49,15 +61,14 @@ $router->post('/api/auth/logout', [$auth, 'logout']);
 $router->post('/api/auth/register-voluntario', [$registration, 'registerVoluntario']);
 $router->post('/api/auth/register-instituicao', [$registration, 'registerInstituicao']);
 $router->get('/api/eventos', [$eventos, 'index']);
+$router->post('/api/eventos', [$eventos, 'store']);
 $router->get('/api/eventos/{id}', [$eventos, 'show']);
 $router->put('/api/eventos/{id}', [$eventos, 'update']);
 $router->delete('/api/eventos/{id}', [$eventos, 'destroy']);
-$router->post('/api/eventos', [$eventos, 'store']);
 $router->get('/api/meus-eventos', [$eventos, 'meusEventos']);
 $router->post('/api/eventos/inscrever', [$inscricoes, 'store']);
-$router->get('/api/minhas-inscricoes', [$inscricoes, 'minhasInscricoes']);
-$router->get('/api/dashboard/instituicao', [$dashboard, 'instituicao']);
-
-
 $router->get('/api/eventos/{id}/inscritos', [$inscricoes, 'inscritos']);
 $router->patch('/api/eventos/{id}/inscritos/{voluntario_id}/status', [$inscricoes, 'updateStatus']);
+$router->get('/api/minhas-inscricoes', [$inscricoes, 'minhasInscricoes']);
+$router->get('/api/dashboard/instituicao', [$dashboard, 'instituicao']);
+$router->get('/api/logs', [$logs, 'index']);

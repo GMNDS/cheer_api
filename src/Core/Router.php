@@ -6,7 +6,7 @@ use Throwable;
 
 final class Router
 {
-    /** @var array<string, callable> */
+    /** @var array<int, array{method:string, pattern:string, params:array<int, string>, handler:callable}> */
     private array $routes = [];
 
     public function get(string $path, callable $handler): void
@@ -35,24 +35,23 @@ final class Router
     }
 
     public function dispatch(Request $request): Response
-    {   
-        $method  = strtoupper($request->method());
+    {
+        $method = strtoupper($request->method());
         $reqPath = '/' . trim($request->path(), '/');
 
         foreach ($this->routes as $route) {
-            if (!str_starts_with($route['pattern'], $method . ' ')) {
+            if ($route['method'] !== $method) {
                 continue;
             }
 
-            $pattern = substr($route['pattern'], strlen($method) + 1);
-            $regex   = $this->toRegex($pattern);
+            $regex = $this->toRegex($route['pattern']);
 
             if (!preg_match($regex, $reqPath, $matches)) {
                 continue;
             }
 
-            // Build named path params and inject into request
             $pathParams = [];
+
             foreach ($route['params'] as $name) {
                 $pathParams[$name] = $matches[$name] ?? null;
             }
@@ -62,7 +61,7 @@ final class Router
             try {
                 $response = ($route['handler'])($requestWithParams, ...array_values(
                     array_map(
-                        static fn ($v) => is_numeric($v) ? (int) $v : $v,
+                        static fn ($value) => is_numeric($value) ? (int) $value : $value,
                         $pathParams
                     )
                 ));
@@ -74,43 +73,50 @@ final class Router
                 $debug = Config::get('app.debug', false);
 
                 return Response::json([
-                    'status'  => 'error',
+                    'status' => 'error',
                     'message' => $debug ? $exception->getMessage() : 'Internal server error.',
                 ], 500);
             }
         }
 
         return Response::json([
-            'status'  => 'error',
+            'status' => 'error',
             'message' => 'Route not found.',
         ], 404);
     }
 
     private function add(string $method, string $path, callable $handler): void
     {
-        $normalizedPath = '/' . trim($path, '/');
-        $params         = [];
-
-        preg_match_all('/\{(\w+)\}/', $normalizedPath, $paramMatches);
-        $params = $paramMatches[1];
+        $pattern = '/' . trim($path, '/');
 
         $this->routes[] = [
-            'pattern' => strtoupper($method) . ' ' . $normalizedPath,
+            'method' => strtoupper($method),
+            'pattern' => $pattern,
+            'params' => $this->extractParams($pattern),
             'handler' => $handler,
-            'params'  => $params,
         ];
     }
 
-    private function toRegex(string $path): string
+    /** @return array<int, string> */
+    private function extractParams(string $pattern): array
     {
-        $escaped = preg_quote($path, '#');
+        preg_match_all('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', $pattern, $matches);
 
+        return $matches[1] ?? [];
+    }
+
+    private function toRegex(string $pattern): string
+    {
         $regex = preg_replace_callback(
-            '/\\\{(\w+)\\\}/',
+            '/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/',
             static fn (array $matches): string => '(?P<' . $matches[1] . '>[^/]+)',
-            $escaped
+            $pattern
         );
 
-        return '#^' . $regex . '$#';
+        if ($regex === null) {
+            return '#^$#';
+        }
+
+        return '#^' . str_replace('#', '\\#', $regex) . '$#';
     }
 }

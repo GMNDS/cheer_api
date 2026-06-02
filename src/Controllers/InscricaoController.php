@@ -5,8 +5,8 @@ namespace Cheer\Controllers;
 use Cheer\Core\Auth;
 use Cheer\Core\Request;
 use Cheer\Core\Response;
-use Cheer\Repositories\InscricaoRepository;
 use Cheer\Repositories\EventoRepository;
+use Cheer\Repositories\InscricaoRepository;
 use Cheer\Repositories\LogRepository;
 use OpenApi\Attributes as OA;
 use Throwable;
@@ -113,146 +113,91 @@ final class InscricaoController
 
     #[OA\Get(
         path: '/api/eventos/{id}/inscritos',
-        summary: 'Listar voluntarios inscritos em um evento',
-        description: 'Apenas a instituição dona do evento pode acessar.',
+        summary: 'Listar inscritos de um evento da instituicao autenticada',
         security: [['cookieAuth' => []]],
         tags: ['Inscricoes'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'ID do evento', schema: new OA\Schema(type: 'integer')),   
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],
-        responses: [ 
-            new OA\Response(response: 200, description: 'Lista de inscritos'),
+        responses: [
+            new OA\Response(response: 200, description: 'Inscritos do evento', content: new OA\JsonContent(ref: '#/components/schemas/InscritosEventoResponse')),
             new OA\Response(response: 401, description: 'Nao autenticado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
             new OA\Response(response: 403, description: 'Permissao negada', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
-            new OA\Response(response: 404, description: 'Evento nao encontrado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),        
-            ]
-        )]
-            public function inscritos(Request $request, int $id): Response
-            {
-                $auth = $this->requireInstituicao($request);
+        ]
+    )]
+    public function inscritos(Request $request, string $id): Response
+    {
+        $auth = $this->requireInstituicao($request);
 
-                if ($auth instanceof Response) {
-                    return $auth;
-                }
+        if ($auth instanceof Response) {
+            return $auth;
+        }
 
-                $evento = $this->eventoRepository()->findById($id);
+        return Response::json([
+            'status' => 'success',
+            'data' => $this->inscricaoRepository()->listByEventoForInstituicao((int) $id, (int) $auth['profile']['id']),
+        ]);
+    }
 
-                if (!$evento){
-                    return Response::json([
-                        'status' => 'error',
-                        'message' => 'Evento não encontrado.',
-                    ], 404);
-                }
-                       if((int) $evento['id_instituicao'] !== (int) $auth['profile']['id']) {
-                    return Response::json([
-                        'status' => 'error',
-                        'message' => 'Permissão negada.',
-                    ], 403);
-                }
+    #[OA\Patch(
+        path: '/api/eventos/{id}/inscritos/{voluntario_id}/status',
+        summary: 'Atualizar status de inscrito em evento',
+        security: [['cookieAuth' => []]],
+        tags: ['Inscricoes'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'voluntario_id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Status atualizado', content: new OA\JsonContent(ref: '#/components/schemas/InscricaoCreatedResponse')),
+            new OA\Response(response: 401, description: 'Nao autenticado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Permissao negada', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 404, description: 'Inscricao nao encontrada', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Payload invalido', content: new OA\JsonContent(ref: '#/components/schemas/ValidationError')),
+        ]
+    )]
+    public function updateStatus(Request $request, string $id, string $voluntarioId): Response
+    {
+        $auth = $this->requireInstituicao($request);
 
-             
-                return Response::json([
-                    'status' => 'success',
-                    'data' => $this->inscricaoRepository()->listByEvento($id),
-                ]);
-            }
+        if ($auth instanceof Response) {
+            return $auth;
+        }
 
+        $status = (string) $request->input('status', '');
+        $allowedStatuses = ['pendente', 'aprovado', 'rejeitado'];
 
-            #[OA\Patch(
-                path: '/api/eventos/{id}/inscritos/{voluntario_id}/status',
-                summary: 'Atualizar status de inscrição de um voluntário',
-                description: 'Apenas a instituição dona do evento pode aprovar ou rejeitar inscrições. Status permitido: pendente, aprovado, rejeitado.',
-                security: [['cookieAuth' => []]],
-                tags: ['Inscricoes'],
-                parameters: [
-                    new OA\Parameter(name: 'id', in: 'path', required: true, description: 'ID do evento', schema: new OA\Schema(type: 'integer')),
-                    new OA\Parameter(name: 'voluntario_id', in: 'path', required: true, description: 'ID do voluntário', schema: new OA\Schema(type: 'integer')),
-                ],
-                requestBody: new OA\RequestBody(
-                    required: true,
-                    content: new OA\JsonContent(
-                        required: ['status'],
-                        properties: [
-                            new OA\Property(property: 'status', type: 'string', enum: ['pendente', 'aprovado', 'rejeitado'], example: 'aprovado'),
-                        ]
-                    )
-                ),
-                responses: [
-                    new OA\Response(response: 200, description: 'Status atualizado'),
-                    new OA\Response(response: 401, description: 'Nao autenticado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
-                    new OA\Response(response: 403, description: 'Permissao negada', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
-                    new OA\Response(response: 404, description: 'Evento ou voluntário nao encontrado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorReponse')),
-                    new OA\Response(response: 422, description: 'Status invalido', content: new OA\JsonContent(ref: '#/components/schemas/ValidationError')),
-                ]
-            )]
+        if (!in_array($status, $allowedStatuses, true)) {
+            return Response::json([
+                'status' => 'error',
+                'message' => 'Payload invalido.',
+                'fields' => ['status'],
+            ], 422);
+        }
 
-            public function updateStatus(Request $request, int $id, int $voluntarioId): Response
-            {
-                $auth = $this->requireInstituicao($request);
+        $updated = $this->inscricaoRepository()->updateStatusForInstituicao((int) $id, (int) $voluntarioId, (int) $auth['profile']['id'], $status);
 
-                if ($auth instanceof Response) {
-                    return $auth; 
-                }
+        if (!$updated) {
+            return Response::json([
+                'status' => 'error',
+                'message' => 'Inscricao nao encontrada.',
+            ], 404);
+        }
 
-                $evento = $this->eventoRepository()->findById($id);
+        $this->logRepository()->create(
+            'STATUS_INSCRICAO_ATUALIZADO',
+            "Status do voluntario {$voluntarioId} no evento {$id} alterado para {$status}.",
+            'info',
+            $request,
+            (int) $auth['profile']['id'],
+            'instituicao'
+        );
 
-                if(!$evento){
-                    return Response::json([
-                        'status' => 'error',
-                        'message' => 'Evento não encontrado.',
-                    ], 404);
-                }
-
-
-                if ((int) $evento['id_instituicao'] !== (int) $auth['profile']['id']) {
-                    return Response::json([
-                        'status' => 'error',
-                        'message' => 'Permission denied.',
-                    ], 403);
-                }
-
-                $novoStatus = (string) $request->input('status', '');
-
-                if (!$this->inscricaoRepository()->isAllowedStatus($novoStatus)) {
-                    return Response::json([
-                        'status'  => 'error',
-                        'message' => 'Status invalido. Use: pendente, aprovado ou rejeitado.',
-                        'fields'  => ['status'],
-                    ], 422);
-                }
-
-
-                $inscricao = $this->inscricaoRepository()->findInscricao($voluntarioId, $id);
-
-                if (!$inscricao) {
-                    return Response::json([
-                        'status' => 'error',
-                        'message' => 'Inscricao nao encontrada.',
-                    ] , 404);
-                }
-
-                $this->inscricaoRepository()->updateStatus($voluntarioId, $id, $novoStatus);
-
-                $this->logRepository()->create(
-                    'STATUS_INSCRICAO_ATUALIZADO',
-                    "Inscricao do voluntario {$voluntarioId} no evento {$id} atualizada para '{$novoStatus}'.",
-                    'info',
-                    $request,
-                    (int) $auth['profile']['id'],
-                    'instituicao'
-                );
-
-                return Response::json([
-                    'status' => 'success',
-                    'message' => "Inscricao atualizada para '{$novoStatus}'.",
-                    'data' => [
-                        'id_evento'     => $id,
-                        'id_voluntario' => $voluntarioId,
-                        'status'        => $novoStatus,
-                    ],
-                ]);
-            }
-
+        return Response::json([
+            'status' => 'success',
+            'data' => ['status' => $status],
+        ]);
+    }
 
     /** @return array{profile: array<string, mixed>}|Response */
     private function requireVoluntario(Request $request): array|Response
@@ -315,7 +260,6 @@ final class InscricaoController
             ], 401);
         }
     }
-    
 
     private function inscricaoRepository(): object
     {
