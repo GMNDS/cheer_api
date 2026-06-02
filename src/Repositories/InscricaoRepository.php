@@ -44,4 +44,55 @@ final class InscricaoRepository
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /** @return list<array<string, mixed>> */
+    public function listByEventoForInstituicao(int $eventoId, int $instituicaoId): array
+    {
+        $statement = Database::connection()->prepare(
+            'SELECT
+                ev.id AS id_evento,
+                ev.titulo AS evento,
+                v.id AS id_voluntario,
+                v.nome,
+                v.email,
+                v.telefone,
+                ve.status,
+                ve.data_inscricao
+             FROM voluntario_evento ve
+             INNER JOIN evento ev ON ev.id = ve.id_evento
+             INNER JOIN voluntario v ON v.id = ve.id_voluntario
+             WHERE ve.id_evento = :id_evento AND ev.id_instituicao = :id_instituicao
+             ORDER BY ve.data_inscricao DESC'
+        );
+        $statement->execute([
+            'id_evento' => $eventoId,
+            'id_instituicao' => $instituicaoId,
+        ]);
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function updateStatusForInstituicao(int $eventoId, int $voluntarioId, int $instituicaoId, string $status): bool
+    {
+        $statement = Database::connection()->prepare(
+            'UPDATE voluntario_evento
+             SET status = :status
+             WHERE id_evento = :id_evento
+               AND id_voluntario = :id_voluntario
+               AND EXISTS (
+                   SELECT 1
+                   FROM evento ev
+                   WHERE ev.id = voluntario_evento.id_evento
+                     AND ev.id_instituicao = :id_instituicao
+               )'
+        );
+        $statement->execute([
+            'status' => $status,
+            'id_evento' => $eventoId,
+            'id_voluntario' => $voluntarioId,
+            'id_instituicao' => $instituicaoId,
+        ]);
+
+        return $statement->rowCount() > 0;
+    }
 }

@@ -30,7 +30,7 @@ final class EventoRepository
              INNER JOIN instituicao inst ON inst.id = ev.id_instituicao
              INNER JOIN enderecos end ON end.id = ev.id_endereco
              LEFT JOIN voluntario_evento ve ON ve.id_evento = ev.id
-             GROUP BY ev.id, inst.nome, end.cidade, end.uf, end.lat, end.lng
+             GROUP BY ev.id, inst.nome, end.cidade, end.uf, end.lat, end.lng, ev.data_hora_inicio, ev.data_hora_termino, ev.tipo_evento, ev.num_max_voluntarios, ev.descricao
              ORDER BY ev.data_hora_inicio ASC'
         );
 
@@ -140,12 +140,123 @@ final class EventoRepository
              INNER JOIN enderecos end ON end.id = ev.id_endereco
              LEFT JOIN voluntario_evento ve ON ve.id_evento = ev.id
              WHERE ev.id_instituicao = :id_instituicao
-             GROUP BY ev.id, end.cidade, end.uf
+             GROUP BY ev.id, end.cidade, end.uf, ev.data_hora_inicio, ev.data_hora_termino, ev.tipo_evento, ev.num_max_voluntarios, ev.descricao
              ORDER BY ev.data_hora_inicio DESC'
         );
         $statement->execute(['id_instituicao' => $instituicaoId]);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** @return array<string, mixed>|null */
+    public function findOwned(int $eventId, int $instituicaoId): ?array
+    {
+        $statement = Database::connection()->prepare(
+            'SELECT
+                ev.id,
+                ev.id_instituicao,
+                ev.id_endereco,
+                ev.titulo,
+                ev.constancia,
+                ev.data_hora_inicio AS data,
+                ev.data_hora_termino,
+                ev.tipo_evento,
+                ev.num_max_voluntarios AS vagas,
+                ev.descricao,
+                end.rua,
+                end.bairro,
+                end.cidade,
+                end.uf,
+                end.codigo_postal,
+                end.lat,
+                end.lng
+             FROM evento ev
+             INNER JOIN enderecos end ON end.id = ev.id_endereco
+             WHERE ev.id = :id AND ev.id_instituicao = :id_instituicao
+             LIMIT 1'
+        );
+        $statement->execute([
+            'id' => $eventId,
+            'id_instituicao' => $instituicaoId,
+        ]);
+
+        $event = $statement->fetch(PDO::FETCH_ASSOC);
+
+        if ($event === false) {
+            return null;
+        }
+
+        $event['endereco'] = [
+            'rua' => $event['rua'],
+            'bairro' => $event['bairro'],
+            'cidade' => $event['cidade'],
+            'uf' => $event['uf'],
+            'codigo_postal' => $event['codigo_postal'],
+            'lat' => $event['lat'],
+            'lng' => $event['lng'],
+        ];
+
+        unset($event['rua'], $event['bairro'], $event['cidade'], $event['uf'], $event['codigo_postal'], $event['lat'], $event['lng']);
+
+        return $event;
+    }
+
+    /** @param array<string, mixed> $data */
+    public function updateOwned(int $eventId, int $instituicaoId, array $data): void
+    {
+        $statement = Database::connection()->prepare(
+            'UPDATE evento
+             SET titulo = :titulo,
+                 constancia = :constancia,
+                 data_hora_inicio = :data_hora_inicio,
+                 data_hora_termino = :data_hora_termino,
+                 tipo_evento = :tipo_evento,
+                 num_max_voluntarios = :num_max_voluntarios,
+                 descricao = :descricao,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id AND id_instituicao = :id_instituicao'
+        );
+        $statement->execute([
+            'id' => $eventId,
+            'id_instituicao' => $instituicaoId,
+            'titulo' => $data['titulo'] ?? '',
+            'constancia' => $data['constancia'] ?? null,
+            'data_hora_inicio' => $data['data_hora_inicio'] ?? $data['data'] ?? '',
+            'data_hora_termino' => $data['data_hora_termino'] ?? null,
+            'tipo_evento' => $data['tipo_evento'] ?? 'voluntariado',
+            'num_max_voluntarios' => $data['num_max_voluntarios'] ?? $data['vagas'] ?? null,
+            'descricao' => $data['descricao'] ?? null,
+        ]);
+    }
+
+    public function deleteOwned(int $eventId, int $instituicaoId): bool
+    {
+        $connection = Database::connection();
+
+        $deleteSubscriptions = $connection->prepare(
+            'DELETE FROM voluntario_evento
+             WHERE id_evento = :id
+               AND EXISTS (
+                   SELECT 1
+                   FROM evento ev
+                   WHERE ev.id = voluntario_evento.id_evento
+                     AND ev.id_instituicao = :id_instituicao
+               )'
+        );
+        $deleteSubscriptions->execute([
+            'id' => $eventId,
+            'id_instituicao' => $instituicaoId,
+        ]);
+
+        $deleteEvent = $connection->prepare(
+            'DELETE FROM evento WHERE id = :id AND id_instituicao = :id_instituicao'
+        );
+        $deleteEvent->execute([
+            'id' => $eventId,
+            'id_instituicao' => $instituicaoId,
+        ]);
+
+        return $deleteEvent->rowCount() > 0;
     }
 
     /** @param array<string, mixed> $event */

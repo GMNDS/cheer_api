@@ -25,7 +25,7 @@ if ((bool) Config::get('cors.allow_credentials', true)) {
     header('Access-Control-Allow-Credentials: true');
 }
 
-header('Access-Control-Allow-Methods: ' . Config::get('cors.allowed_methods', 'GET, POST, OPTIONS'));
+header('Access-Control-Allow-Methods: ' . Config::get('cors.allowed_methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS'));
 header('Access-Control-Allow-Headers: ' . Config::get('cors.allowed_headers', 'Content-Type, X-Requested-With'));
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {

@@ -190,11 +190,52 @@ use OpenApi\Attributes as OA;
     type: 'object'
 )]
 #[OA\Schema(
+    schema: 'EventoDetailResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(
+            property: 'data',
+            allOf: [new OA\Schema(ref: '#/components/schemas/Evento')],
+            properties: [
+                new OA\Property(property: 'constancia', type: 'string', nullable: true),
+                new OA\Property(property: 'id_endereco', type: 'integer'),
+                new OA\Property(property: 'endereco', ref: '#/components/schemas/EnderecoInput'),
+            ],
+            type: 'object'
+        ),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
     schema: 'EventosResponse',
     required: ['status', 'data'],
     properties: [
         new OA\Property(property: 'status', type: 'string', example: 'success'),
         new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/Evento')),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'InscritoEvento',
+    properties: [
+        new OA\Property(property: 'id_evento', type: 'integer'),
+        new OA\Property(property: 'evento', type: 'string'),
+        new OA\Property(property: 'id_voluntario', type: 'integer'),
+        new OA\Property(property: 'nome', type: 'string'),
+        new OA\Property(property: 'email', type: 'string', format: 'email'),
+        new OA\Property(property: 'telefone', type: 'string', nullable: true),
+        new OA\Property(property: 'status', type: 'string', enum: ['pendente', 'aprovado', 'rejeitado']),
+        new OA\Property(property: 'data_inscricao', type: 'string'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'InscritosEventoResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/InscritoEvento')),
     ],
     type: 'object'
 )]
@@ -242,6 +283,63 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'status', type: 'string', example: 'success'),
         new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/Inscricao')),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'DashboardInstituicaoResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(
+            property: 'data',
+            properties: [
+                new OA\Property(property: 'kpis', type: 'object'),
+                new OA\Property(property: 'series', type: 'object'),
+                new OA\Property(property: 'tables', type: 'object'),
+            ],
+            type: 'object'
+        ),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'LogEvento',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'tipo_evento', type: 'string'),
+        new OA\Property(property: 'descricao', type: 'string'),
+        new OA\Property(property: 'nivel', type: 'string'),
+        new OA\Property(property: 'origem', type: 'string', nullable: true),
+        new OA\Property(property: 'id_usuario', type: 'integer', nullable: true),
+        new OA\Property(property: 'tipo_usuario', type: 'string', nullable: true),
+        new OA\Property(property: 'ip_origem', type: 'string', nullable: true),
+        new OA\Property(property: 'user_agent', type: 'string', nullable: true),
+        new OA\Property(property: 'data_hora', type: 'string'),
+    ],
+    type: 'object'
+)]
+#[OA\Schema(
+    schema: 'LogsResponse',
+    required: ['status', 'data'],
+    properties: [
+        new OA\Property(property: 'status', type: 'string', example: 'success'),
+        new OA\Property(
+            property: 'data',
+            properties: [
+                new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: '#/components/schemas/LogEvento')),
+                new OA\Property(
+                    property: 'pagination',
+                    properties: [
+                        new OA\Property(property: 'page', type: 'integer'),
+                        new OA\Property(property: 'per_page', type: 'integer'),
+                        new OA\Property(property: 'total', type: 'integer'),
+                    ],
+                    type: 'object'
+                ),
+            ],
+            type: 'object'
+        ),
     ],
     type: 'object'
 )]

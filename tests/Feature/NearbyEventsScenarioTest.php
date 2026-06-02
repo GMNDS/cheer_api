@@ -96,10 +96,13 @@ final class NearbyEventsScenarioTest extends TestCase
             'id' => $institutionId,
         ];
 
+        $closeEventStart = (new \DateTimeImmutable('+7 days'))->format('Y-m-d\T09:00:00P');
+        $farEventStart = (new \DateTimeImmutable('+8 days'))->format('Y-m-d\T09:00:00P');
+
         $eventClosePayload = [
             'titulo' => 'Mutirao do Centro',
             'tipo_evento' => 'voluntariado',
-            'data_hora_inicio' => '2026-06-01T09:00:00-03:00',
+            'data_hora_inicio' => $closeEventStart,
             'descricao' => 'Evento perto da voluntaria.',
             'endereco' => [
                 'rua' => 'Rua Central 10',
@@ -115,7 +118,7 @@ final class NearbyEventsScenarioTest extends TestCase
         $eventFarPayload = [
             'titulo' => 'Mutirao distante',
             'tipo_evento' => 'voluntariado',
-            'data_hora_inicio' => '2026-06-02T09:00:00-03:00',
+            'data_hora_inicio' => $farEventStart,
             'descricao' => 'Evento longe da voluntaria.',
             'endereco' => [
                 'rua' => 'Rua Longe 100',

@@ -50,7 +50,7 @@ final class EventoController
 
         return Response::json([
             'status' => 'success',
-            'data' => $this->eventoRepository()->listAvailable($nearby['lat'], $nearby['lng'], $nearby['raio_km']),
+            'data' => $this->eventoRepository()->listAvailable($nearby['lat'] ?? null, $nearby['lng'] ?? null, $nearby['raio_km'] ?? null),
         ]);
     }
 
@@ -96,6 +96,16 @@ final class EventoController
                 'status' => 'error',
                 'message' => 'Missing required fields.',
                 'fields' => array_values(array_unique($missing)),
+            ], 422);
+        }
+
+        $validationFields = $this->invalidEventFields($data);
+
+        if ($validationFields !== []) {
+            return Response::json([
+                'status' => 'error',
+                'message' => 'Payload invalido.',
+                'fields' => $validationFields,
             ], 422);
         }
 
@@ -157,6 +167,202 @@ final class EventoController
         ]);
     }
 
+    #[OA\Get(
+        path: '/api/eventos/{id}',
+        summary: 'Detalhar evento da instituicao autenticada',
+        security: [['cookieAuth' => []]],
+        tags: ['Eventos'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Evento encontrado', content: new OA\JsonContent(ref: '#/components/schemas/EventoDetailResponse')),
+            new OA\Response(response: 401, description: 'Nao autenticado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Permissao negada', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 404, description: 'Evento nao encontrado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ]
+    )]
+    public function show(Request $request, string $id): Response
+    {
+        $auth = $this->requireProfile($request, 'instituicao');
+
+        if ($auth instanceof Response) {
+            return $auth;
+        }
+
+        $evento = $this->eventoRepository()->findOwned((int) $id, (int) $auth['profile']['id']);
+
+        if ($evento === null) {
+            return Response::json([
+                'status' => 'error',
+                'message' => 'Evento nao encontrado.',
+            ], 404);
+        }
+
+        return Response::json([
+            'status' => 'success',
+            'data' => $evento,
+        ]);
+    }
+
+    #[OA\Put(
+        path: '/api/eventos/{id}',
+        summary: 'Atualizar evento da instituicao autenticada',
+        security: [['cookieAuth' => []]],
+        tags: ['Eventos'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/CreateEventoRequest')),
+        responses: [
+            new OA\Response(response: 200, description: 'Evento atualizado', content: new OA\JsonContent(ref: '#/components/schemas/EventoDetailResponse')),
+            new OA\Response(response: 401, description: 'Nao autenticado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Permissao negada', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 404, description: 'Evento nao encontrado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Payload invalido', content: new OA\JsonContent(ref: '#/components/schemas/ValidationError')),
+        ]
+    )]
+    public function update(Request $request, string $id): Response
+    {
+        $auth = $this->requireProfile($request, 'instituicao');
+
+        if ($auth instanceof Response) {
+            return $auth;
+        }
+
+        $instituicaoId = (int) $auth['profile']['id'];
+        $eventoId = (int) $id;
+        $current = $this->eventoRepository()->findOwned($eventoId, $instituicaoId);
+
+        if ($current === null) {
+            return Response::json([
+                'status' => 'error',
+                'message' => 'Evento nao encontrado.',
+            ], 404);
+        }
+
+        $data = $this->mergeEventPayload($current, $request->all());
+        $address = is_array($data['endereco'] ?? null) ? $data['endereco'] : $data;
+        $missing = array_merge(
+            $this->missing($data, ['titulo', 'tipo_evento', 'data_hora_inicio']),
+            $this->missing($address, ['rua', 'bairro', 'cidade', 'uf', 'codigo_postal'])
+        );
+
+        if ($missing !== []) {
+            return Response::json([
+                'status' => 'error',
+                'message' => 'Missing required fields.',
+                'fields' => array_values(array_unique($missing)),
+            ], 422);
+        }
+
+        $validationFields = $this->invalidEventFields($data);
+
+        if ($validationFields !== []) {
+            return Response::json([
+                'status' => 'error',
+                'message' => 'Payload invalido.',
+                'fields' => $validationFields,
+            ], 422);
+        }
+
+        try {
+            $this->transactions()->begin();
+
+            $this->enderecoRepository()->update((int) $current['id_endereco'], $address);
+            $this->eventoRepository()->updateOwned($eventoId, $instituicaoId, $data);
+
+            $this->logRepository()->create(
+                'ATUALIZACAO_EVENTO',
+                "Evento {$eventoId} atualizado.",
+                'info',
+                $request,
+                $instituicaoId,
+                'instituicao'
+            );
+
+            $this->transactions()->commit();
+
+            return Response::json([
+                'status' => 'success',
+                'data' => $this->eventoRepository()->findOwned($eventoId, $instituicaoId),
+            ]);
+        } catch (Throwable $exception) {
+            $this->transactions()->rollback();
+            $this->logWriteError($request, 'ERRO_ATUALIZACAO_EVENTO', $exception->getMessage(), $auth['profile']);
+
+            return Response::json([
+                'status' => 'error',
+                'message' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    #[OA\Delete(
+        path: '/api/eventos/{id}',
+        summary: 'Excluir evento da instituicao autenticada',
+        security: [['cookieAuth' => []]],
+        tags: ['Eventos'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Evento excluido', content: new OA\JsonContent(ref: '#/components/schemas/IdResponse')),
+            new OA\Response(response: 401, description: 'Nao autenticado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Permissao negada', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 404, description: 'Evento nao encontrado', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ]
+    )]
+    public function destroy(Request $request, string $id): Response
+    {
+        $auth = $this->requireProfile($request, 'instituicao');
+
+        if ($auth instanceof Response) {
+            return $auth;
+        }
+
+        $instituicaoId = (int) $auth['profile']['id'];
+        $eventoId = (int) $id;
+
+        try {
+            $this->transactions()->begin();
+            $deleted = $this->eventoRepository()->deleteOwned($eventoId, $instituicaoId);
+
+            if (!$deleted) {
+                $this->transactions()->rollback();
+
+                return Response::json([
+                    'status' => 'error',
+                    'message' => 'Evento nao encontrado.',
+                ], 404);
+            }
+
+            $this->logRepository()->create(
+                'EXCLUSAO_EVENTO',
+                "Evento {$eventoId} excluido.",
+                'info',
+                $request,
+                $instituicaoId,
+                'instituicao'
+            );
+
+            $this->transactions()->commit();
+
+            return Response::json([
+                'status' => 'success',
+                'data' => ['id' => $eventoId],
+            ]);
+        } catch (Throwable $exception) {
+            $this->transactions()->rollback();
+            $this->logWriteError($request, 'ERRO_EXCLUSAO_EVENTO', $exception->getMessage(), $auth['profile']);
+
+            return Response::json([
+                'status' => 'error',
+                'message' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
     /** @return array{profile: array<string, mixed>}|Response */
     private function requireProfile(Request $request, string $type): array|Response
     {
@@ -192,6 +398,66 @@ final class EventoController
     private function missing(array $data, array $required): array
     {
         return array_values(array_filter($required, static fn (string $field): bool => empty($data[$field])));
+    }
+
+    /** @param array<string, mixed> $data */
+    private function invalidEventFields(array $data): array
+    {
+        $fields = [];
+        $startValue = $data['data_hora_inicio'] ?? $data['data'] ?? null;
+        $endValue = $data['data_hora_termino'] ?? null;
+        $startDate = $this->parseDateTime($startValue);
+
+        if ($startDate === null || $startDate < new \DateTimeImmutable()) {
+            $fields[] = 'data_hora_inicio';
+        }
+
+        if ($endValue !== null && $endValue !== '') {
+            $endDate = $this->parseDateTime($endValue);
+
+            if ($endDate === null || ($startDate !== null && $endDate <= $startDate)) {
+                $fields[] = 'data_hora_termino';
+            }
+        }
+
+        $capacity = $data['num_max_voluntarios'] ?? $data['vagas'] ?? null;
+
+        if ($capacity !== null && $capacity !== '' && (!is_numeric($capacity) || (int) $capacity <= 0)) {
+            $fields[] = 'num_max_voluntarios';
+        }
+
+        return array_values(array_unique($fields));
+    }
+
+    private function parseDateTime(mixed $value): ?\DateTimeImmutable
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return new \DateTimeImmutable($value);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /** @param array<string, mixed> $current @param array<string, mixed> $incoming */
+    private function mergeEventPayload(array $current, array $incoming): array
+    {
+        $currentAddress = is_array($current['endereco'] ?? null) ? $current['endereco'] : [];
+        $incomingAddress = is_array($incoming['endereco'] ?? null) ? $incoming['endereco'] : [];
+
+        return [
+            'titulo' => $incoming['titulo'] ?? $current['titulo'],
+            'tipo_evento' => $incoming['tipo_evento'] ?? $current['tipo_evento'],
+            'constancia' => array_key_exists('constancia', $incoming) ? $incoming['constancia'] : ($current['constancia'] ?? null),
+            'descricao' => array_key_exists('descricao', $incoming) ? $incoming['descricao'] : ($current['descricao'] ?? null),
+            'num_max_voluntarios' => array_key_exists('num_max_voluntarios', $incoming) ? $incoming['num_max_voluntarios'] : ($current['vagas'] ?? null),
+            'data_hora_inicio' => $incoming['data_hora_inicio'] ?? $incoming['data'] ?? $current['data'],
+            'data_hora_termino' => array_key_exists('data_hora_termino', $incoming) ? $incoming['data_hora_termino'] : ($current['data_hora_termino'] ?? null),
+            'endereco' => array_merge($currentAddress, $incomingAddress),
+        ];
     }
 
     /**
