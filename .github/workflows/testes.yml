@@ -10,10 +10,7 @@ permissions:
 jobs:
   phpunit:
     name: Testes PHP
-    strategy:
-      matrix:
-        runner: [docker, ubuntu-latest]
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ github.server_url == 'https://github.com' && 'ubuntu-latest' || 'docker' }}
     
     steps:
       - name: Baixar codigo
