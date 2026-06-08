@@ -107,6 +107,8 @@ Table "enderecos" {
   "cidade" varchar(255) [not null]
   "uf" "char(2)" [not null]
   "codigo_postal" "char(8)" [not null]
+  "numero" varchar(20)
+  "complemento" varchar(255)
   "lat" decimal(10,8)
   "lng" decimal(11,8)
 }

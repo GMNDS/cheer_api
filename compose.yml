@@ -42,7 +42,7 @@ services:
       start_period: 20s
     volumes:
       - database_data:/var/lib/mysql
-      - ./database/migrations/001_create_initial_schema.sql:/docker-entrypoint-initdb.d/001_create_initial_schema.sql:ro
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
     networks:
       - database
 

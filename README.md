@@ -17,8 +17,13 @@ docker network create proxy
 docker compose up -d --build
 ```
 
-O Compose sobe a API PHP/Apache e um MySQL. O banco aplica a migration inicial
-apenas ao criar o volume `database_data` pela primeira vez.
+O Compose sobe a API PHP/Apache e um MySQL. O banco aplica os arquivos em
+`database/migrations` apenas ao criar o volume `database_data` pela primeira vez.
+Para um volume ja existente, aplique migrations novas manualmente:
+
+```bash
+docker compose exec db sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /docker-entrypoint-initdb.d/002_add_numero_to_enderecos.sql'
+```
 
 ## Testes
 
