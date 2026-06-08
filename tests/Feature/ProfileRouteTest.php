@@ -18,6 +18,8 @@ final class ProfileRouteTest extends TestCase
             'telefone' => '11999999999',
             'categoria' => 'Educacao',
             'rua' => 'Rua Central',
+            'numero' => '123',
+            'complemento' => 'Sala 4',
             'bairro' => 'Centro',
             'cidade' => 'Sao Paulo',
             'uf' => 'SP',
@@ -33,6 +35,8 @@ final class ProfileRouteTest extends TestCase
         self::assertSame('Sao Paulo', $body['data']['cidade']);
         self::assertSame([
             'rua' => 'Rua Central',
+            'numero' => '123',
+            'complemento' => 'Sala 4',
             'bairro' => 'Centro',
             'cidade' => 'Sao Paulo',
             'uf' => 'SP',
