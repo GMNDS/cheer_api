@@ -11,6 +11,9 @@ jobs:
   phpunit:
     name: Testes PHP
     runs-on: ${{ github.server_url == 'https://github.com' && 'ubuntu-latest' || 'docker' }}
+    env:
+      CORS_ALLOWED_ORIGIN: "*"
+      CORS_ALLOW_CREDENTIALS: "false"
     
     steps:
       - name: Baixar codigo
