@@ -47,9 +47,15 @@ final class EventoController
             return $nearby;
         }
 
+        $events = $this->eventoRepository()->listAvailable($nearby['lat'] ?? null, $nearby['lng'] ?? null, $nearby['raio_km'] ?? null);
+
+        if ($nearby !== null && $events === []) {
+            $events = $this->eventoRepository()->listAvailable();
+        }
+
         return Response::json([
             'status' => 'success',
-            'data' => $this->eventoRepository()->listAvailable($nearby['lat'] ?? null, $nearby['lng'] ?? null, $nearby['raio_km'] ?? null),
+            'data' => $events,
         ]);
     }
 

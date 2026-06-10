@@ -20,6 +20,52 @@ use Tests\TestCase;
 
 final class NearbyEventsScenarioTest extends TestCase
 {
+    public function testFallsBackToAllEventsWhenNearbySearchIsEmpty(): void
+    {
+        $state = new FakeScenarioState();
+        $state->institutions[1] = [
+            'id' => 1,
+            'nome' => 'Instituicao Distante',
+        ];
+        $state->addresses[1] = [
+            'id' => 1,
+            'cidade' => 'Rio de Janeiro',
+            'uf' => 'RJ',
+            'lat' => -22.90685,
+            'lng' => -43.17290,
+        ];
+        $state->events[1] = [
+            'id' => 1,
+            'id_instituicao' => 1,
+            'id_endereco' => 1,
+            'titulo' => 'Mutirao disponivel',
+            'data' => (new \DateTimeImmutable('+7 days'))->format('Y-m-d\T09:00:00P'),
+            'data_hora_termino' => null,
+            'tipo_evento' => 'voluntariado',
+            'vagas' => 10,
+            'descricao' => 'Evento fora do raio informado.',
+        ];
+
+        $controller = new EventoController(
+            new FakeTransactionManager(),
+            new FakeEnderecoRepository($state),
+            new FakeEventoRepository($state),
+            new FakeLogRepository($state)
+        );
+
+        $result = $this->render($controller->index(new Request('GET', '/api/eventos', [], [
+            'lat' => -23.55100,
+            'lng' => -46.63290,
+            'raio_km' => 1,
+        ], [])));
+
+        self::assertSame(200, $result['status']);
+
+        $body = json_decode($result['body'], true);
+        self::assertCount(1, $body['data']);
+        self::assertSame('Mutirao disponivel', $body['data'][0]['titulo']);
+    }
+
     public function testCreatesInstitutionVolunteerSignupAndListsNearbyEvents(): void
     {
         $state = new FakeScenarioState();
