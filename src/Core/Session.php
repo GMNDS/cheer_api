@@ -40,6 +40,10 @@ final class Session
 
     public static function regenerate(): void
     {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
         session_regenerate_id(true);
     }
 

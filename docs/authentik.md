@@ -35,6 +35,29 @@ Se o frontend for SPA, use:
 
 O backend tambem envia PKCE no login, mesmo sendo confidential client.
 
+Para mobile nativo usando a API como BFF, mantenha o mesmo provider
+confidential e adicione tambem o callback mobile da API:
+
+```txt
+https://api.example.com/api/auth/mobile/callback
+```
+
+O mobile nao recebe `client_secret` nem token direto do Authentik. O backend
+faz o callback, gera um codigo de uso unico e redireciona para o deep link do
+app. O app troca esse codigo em:
+
+```txt
+POST /api/auth/mobile/exchange
+```
+
+Configure somente deep links permitidos no backend:
+
+```env
+AUTHENTIK_MOBILE_CALLBACK_URI=https://api.example.com/api/auth/mobile/callback
+AUTHENTIK_MOBILE_APP_REDIRECT_URIS="cheer://auth/callback"
+AUTHENTIK_MOBILE_CODE_TTL=300
+```
+
 ## Scopes
 
 Use no inicio:
@@ -99,6 +122,8 @@ AUTHENTIK_APPLICATION_SLUG=cheer
 AUTHENTIK_CLIENT_ID=client-id-do-provider
 AUTHENTIK_CLIENT_SECRET=client-secret-do-provider
 AUTHENTIK_REDIRECT_URI=http://localhost:8000/api/auth/callback
+AUTHENTIK_MOBILE_CALLBACK_URI=http://localhost:8000/api/auth/mobile/callback
+AUTHENTIK_MOBILE_APP_REDIRECT_URIS="cheer://auth/callback"
 AUTHENTIK_POST_LOGIN_REDIRECT_URI=http://localhost:5173
 AUTHENTIK_POST_LOGOUT_REDIRECT_URI=http://localhost:5173
 AUTHENTIK_SCOPES="openid profile email"

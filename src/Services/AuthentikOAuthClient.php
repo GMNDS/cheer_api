@@ -8,13 +8,13 @@ use RuntimeException;
 final class AuthentikOAuthClient
 {
     /** @return array<string, mixed> */
-    public function exchangeCode(string $code, string $codeVerifier): array
+    public function exchangeCode(string $code, string $codeVerifier, ?string $redirectUri = null): array
     {
         $payload = [
             'grant_type' => 'authorization_code',
             'client_id' => Config::get('authentik.client_id'),
             'client_secret' => Config::get('authentik.client_secret'),
-            'redirect_uri' => Config::get('authentik.redirect_uri'),
+            'redirect_uri' => $redirectUri ?? Config::get('authentik.redirect_uri'),
             'code' => $code,
             'code_verifier' => $codeVerifier,
         ];
