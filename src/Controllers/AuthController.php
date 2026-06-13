@@ -108,7 +108,7 @@ final class AuthController
         Session::put('oauth_code_verifier', $codeVerifier);
         Session::put('oauth_flow', $flow);
 
-        $query = http_build_query([
+        $params = [
             'client_id' => $clientId,
             'redirect_uri' => $redirectUri,
             'response_type' => 'code',
@@ -117,7 +117,14 @@ final class AuthController
             'nonce' => $nonce,
             'code_challenge' => $codeChallenge,
             'code_challenge_method' => 'S256',
-        ], '', '&', PHP_QUERY_RFC3986);
+        ];
+
+        $prompt = $flow === 'mobile' ? (string) Config::get('authentik.mobile_login_prompt', '') : '';
+        if ($prompt !== '') {
+            $params['prompt'] = $prompt;
+        }
+
+        $query = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
         return Response::redirect("{$authorizationUrl}?{$query}");
     }

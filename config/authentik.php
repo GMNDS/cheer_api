@@ -24,6 +24,7 @@ return [
     'mobile_app_redirect_uris' => array_filter(array_map('trim', explode(',', (string) Env::get('AUTHENTIK_MOBILE_APP_REDIRECT_URIS', 'cheer://auth/callback')))),
     'mobile_logout_callback_uri' => Env::get('AUTHENTIK_MOBILE_LOGOUT_CALLBACK_URI', "{$appUrl}/api/auth/mobile/logout/callback"),
     'mobile_logout_redirect_uri' => Env::get('AUTHENTIK_MOBILE_LOGOUT_REDIRECT_URI', 'cheer://auth/logout'),
+    'mobile_login_prompt' => Env::get('AUTHENTIK_MOBILE_LOGIN_PROMPT', 'login'),
     'mobile_code_ttl' => Env::get('AUTHENTIK_MOBILE_CODE_TTL', 300),
     'post_login_redirect_uri' => Env::get('AUTHENTIK_POST_LOGIN_REDIRECT_URI', 'http://localhost:5173'),
     'post_logout_redirect_uri' => Env::get('AUTHENTIK_POST_LOGOUT_REDIRECT_URI', 'http://localhost:5173'),
