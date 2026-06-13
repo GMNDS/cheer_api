@@ -1,4 +1,4 @@
-CREATE TABLE `mobile_auth_codes` (
+CREATE TABLE IF NOT EXISTS `mobile_auth_codes` (
   `id` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `code_hash` char(64) UNIQUE NOT NULL,
   `profile_json` text NOT NULL,

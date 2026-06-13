@@ -27,7 +27,14 @@ RUN composer install \
     --classmap-authoritative
 
 COPY --chown=www-data:www-data config ./config
+COPY --chown=www-data:www-data database ./database
 COPY --chown=www-data:www-data public ./public
 COPY --chown=www-data:www-data routes ./routes
+COPY docker/entrypoint.sh /usr/local/bin/cheer-entrypoint
+
+RUN chmod +x /usr/local/bin/cheer-entrypoint
+
+ENTRYPOINT ["cheer-entrypoint"]
+CMD ["apache2-foreground"]
 
 EXPOSE 80
