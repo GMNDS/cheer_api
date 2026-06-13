@@ -109,6 +109,8 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'authenticated', type: 'boolean', example: false),
                 new OA\Property(property: 'login_url', type: 'string', example: 'http://localhost:8000/api/auth/login'),
                 new OA\Property(property: 'logout_url', type: 'string', example: 'http://localhost:8000/api/auth/logout'),
+                new OA\Property(property: 'mobile_login_url', type: 'string', example: 'http://localhost:8000/api/auth/mobile/login'),
+                new OA\Property(property: 'mobile_logout_url', type: 'string', example: 'http://localhost:8000/api/auth/mobile/logout'),
             ],
             type: 'object'
         ),

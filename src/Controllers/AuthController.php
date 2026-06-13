@@ -44,6 +44,7 @@ final class AuthController
                 'login_url' => rtrim((string) Config::get('app.url'), '/') . '/api/auth/login',
                 'logout_url' => rtrim((string) Config::get('app.url'), '/') . '/api/auth/logout',
                 'mobile_login_url' => rtrim((string) Config::get('app.url'), '/') . '/api/auth/mobile/login',
+                'mobile_logout_url' => rtrim((string) Config::get('app.url'), '/') . '/api/auth/mobile/logout',
             ],
         ]);
     }
@@ -143,6 +144,18 @@ final class AuthController
     public function mobileCallback(Request $request): Response
     {
         return $this->handleCallback($request, 'mobile', (string) Config::get('authentik.mobile_callback_uri'));
+    }
+
+    public function mobileLogout(): Response
+    {
+        return Response::redirect($this->authentikLogoutUrl(
+            (string) Config::get('authentik.mobile_logout_callback_uri')
+        ));
+    }
+
+    public function mobileLogoutCallback(): Response
+    {
+        return Response::redirect((string) Config::get('authentik.mobile_logout_redirect_uri'));
     }
 
     private function handleCallback(Request $request, string $expectedFlow, string $redirectUri): Response
@@ -432,6 +445,7 @@ final class AuthController
         return [
             'access_token' => $tokens['access_token'] ?? null,
             'refresh_token' => $tokens['refresh_token'] ?? null,
+            'id_token' => $tokens['id_token'] ?? null,
             'expires_at' => time() + (int) ($tokens['expires_in'] ?? 0),
         ];
     }
@@ -458,6 +472,19 @@ final class AuthController
         $separator = str_contains($uri, '?') ? '&' : '?';
 
         return $uri . $separator . http_build_query($params, '', '&', PHP_QUERY_RFC3986) . $fragment;
+    }
+
+    private function authentikLogoutUrl(string $postLogoutRedirectUri): string
+    {
+        $endSessionUrl = (string) Config::get('authentik.end_session_url', '');
+
+        if ($endSessionUrl === '') {
+            return $postLogoutRedirectUri;
+        }
+
+        return $this->appendQuery($endSessionUrl, [
+            'post_logout_redirect_uri' => $postLogoutRedirectUri,
+        ]);
     }
 
     private function oauthClient(): object
