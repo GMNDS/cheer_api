@@ -149,8 +149,30 @@ final class AuthController
     public function mobileLogout(): Response
     {
         return Response::redirect($this->authentikLogoutUrl(
-            (string) Config::get('authentik.mobile_logout_callback_uri')
+            (string) Config::get('authentik.mobile_logout_callback_uri'),
+            null
         ));
+    }
+
+    public function mobileLogoutUrl(): Response
+    {
+        $tokens = Session::get('authentik_tokens', []);
+        $idToken = is_array($tokens) && is_string($tokens['id_token'] ?? null)
+            ? $tokens['id_token']
+            : null;
+        $logoutUrl = $this->authentikLogoutUrl(
+            (string) Config::get('authentik.mobile_logout_callback_uri'),
+            $idToken
+        );
+
+        Session::destroy();
+
+        return Response::json([
+            'status' => 'success',
+            'data' => [
+                'logout_url' => $logoutUrl,
+            ],
+        ]);
     }
 
     public function mobileLogoutCallback(): Response
@@ -474,7 +496,7 @@ final class AuthController
         return $uri . $separator . http_build_query($params, '', '&', PHP_QUERY_RFC3986) . $fragment;
     }
 
-    private function authentikLogoutUrl(string $postLogoutRedirectUri): string
+    private function authentikLogoutUrl(string $postLogoutRedirectUri, ?string $idToken): string
     {
         $endSessionUrl = (string) Config::get('authentik.end_session_url', '');
 
@@ -482,9 +504,15 @@ final class AuthController
             return $postLogoutRedirectUri;
         }
 
-        return $this->appendQuery($endSessionUrl, [
+        $params = [
             'post_logout_redirect_uri' => $postLogoutRedirectUri,
-        ]);
+        ];
+
+        if ($idToken !== null && $idToken !== '') {
+            $params['id_token_hint'] = $idToken;
+        }
+
+        return $this->appendQuery($endSessionUrl, $params);
     }
 
     private function oauthClient(): object
