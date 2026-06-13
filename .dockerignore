@@ -9,7 +9,6 @@ coverage
 vendor
 tests
 docs
-database
 cheer.dbml
 phpunit.xml
 README.md
