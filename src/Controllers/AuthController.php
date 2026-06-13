@@ -510,6 +510,11 @@ final class AuthController
 
         if ($idToken !== null && $idToken !== '') {
             $params['id_token_hint'] = $idToken;
+        } else {
+            $clientId = (string) Config::get('authentik.client_id', '');
+            if ($clientId !== '') {
+                $params['client_id'] = $clientId;
+            }
         }
 
         return $this->appendQuery($endSessionUrl, $params);
