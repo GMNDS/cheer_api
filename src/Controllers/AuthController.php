@@ -204,6 +204,8 @@ final class AuthController
             Session::put('authentik_tokens', $sessionTokens);
             $this->clearOAuthSession();
         } catch (Throwable $exception) {
+            $this->logOAuthError($request, $expectedFlow, $exception);
+
             return $this->callbackError($expectedFlow, [
                 'status' => 'error',
                 'message' => $exception->getMessage(),
@@ -224,23 +226,32 @@ final class AuthController
             ], 422);
         }
 
-        $payload = $this->mobileAuthCodes()->consume($code);
+        try {
+            $payload = $this->mobileAuthCodes()->consume($code);
 
-        if (!is_array($payload)) {
+            if (!is_array($payload)) {
+                return Response::json([
+                    'status' => 'error',
+                    'message' => 'Mobile authorization code is invalid or expired.',
+                ], 400);
+            }
+
+            Session::regenerate();
+            Session::put('profile', $payload['profile']);
+            Session::put('authentik_tokens', $payload['tokens']);
+
+            return Response::json([
+                'status' => 'success',
+                'data' => $this->presentProfile($payload['profile']),
+            ]);
+        } catch (Throwable $exception) {
+            $this->logOAuthError($request, 'mobile-exchange', $exception);
+
             return Response::json([
                 'status' => 'error',
-                'message' => 'Mobile authorization code is invalid or expired.',
-            ], 400);
+                'message' => $exception->getMessage(),
+            ], 500);
         }
-
-        Session::regenerate();
-        Session::put('profile', $payload['profile']);
-        Session::put('authentik_tokens', $payload['tokens']);
-
-        return Response::json([
-            'status' => 'success',
-            'data' => $this->presentProfile($payload['profile']),
-        ]);
     }
 
     #[OA\Post(
@@ -333,6 +344,23 @@ final class AuthController
     {
         try {
             (new LogRepository())->create('TOKEN_INVALIDO', $message, 'warning', $request);
+        } catch (Throwable) {
+        }
+    }
+
+    private function logOAuthError(Request $request, string $flow, Throwable $exception): void
+    {
+        error_log(sprintf(
+            '[Cheer OAuth %s] %s: %s at %s:%d',
+            $flow,
+            get_class($exception),
+            $exception->getMessage(),
+            $exception->getFile(),
+            $exception->getLine()
+        ));
+
+        try {
+            (new LogRepository())->create('ERRO_AUTHENTIK', $exception->getMessage(), 'error', $request, null, null, $flow);
         } catch (Throwable) {
         }
     }
